@@ -4,12 +4,6 @@ variable "ami" {
   description = "AMI ID to use"
 }
 
-variable "spot_price" {
-  type        = string
-  default     = null
-  description = "Spot instance bid price"
-}
-
 variable "spot_instance" {
   type        = bool
   default     = false
@@ -60,4 +54,8 @@ variable "availability_zone" {
   type        = string
   description = "Availability Zone"
   default     = "ap-southeast-2a"
+}
+
+locals {
+  spot_price = data.aws_ec2_spot_price.current_spot_price.spot_price * 1.02
 }

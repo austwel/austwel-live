@@ -4,6 +4,12 @@ variable "instance_type" {
   default     = "r6a.large"
 }
 
+variable "spot_instance" {
+  type        = bool
+  default     = false
+  description = "Should instance be spot"
+}
+
 variable "name" {
   type        = string
   description = "Instance name"

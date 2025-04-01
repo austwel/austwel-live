@@ -29,11 +29,21 @@ resource "aws_instance" "instance" {
   tags = var.instance_tags
 }
 
+data "aws_ec2_spot_price" "current_spot_price" {
+  instance_type = var.instance_type
+  availability_zone = var.availability_zone
+
+  filter {
+    name   = "product-description"
+    values = ["Linux/UNIX"]
+  }
+}
+
 resource "aws_spot_instance_request" "instance_spot" {
   count = (var.spot_instance ? 1 : 0)
   
   # Spot
-  spot_price                  = var.spot_price
+  spot_price                  = local.spot_price
   wait_for_fulfillment        = true
 
   # Instance

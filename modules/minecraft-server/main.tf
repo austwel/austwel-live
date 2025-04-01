@@ -1,6 +1,8 @@
 module "instance" {
   source = "../ec2"
 
+  spot_instance     = var.spot_instance
+
   ami               = var.ami_id
   instance_type     = var.instance_type
   root_volume_size  = var.root_volume_size
