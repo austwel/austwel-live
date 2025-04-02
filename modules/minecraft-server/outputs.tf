@@ -1,5 +1,5 @@
-output "instance" {
-  value = module.instance
-  description = "Minecraft Server attributes"
+output "asg" {
+  value = module.asg
+  description = "Minecraft Server autoscaling group"
 }
 

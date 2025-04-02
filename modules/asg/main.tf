@@ -1,9 +1,3 @@
-resource "aws_launch_template" "launch_template" {
-  name_prefix   = var.application
-  image_id      = var.ami_id
-  instance_type = "r6a.large"
-}
-
 module "launch_template" {
   source = "../launch_template"
   
@@ -15,6 +9,7 @@ module "launch_template" {
 }
 
 resource "aws_autoscaling_group" "autoscaling_group" {
+  name                = "${var.application}-asg"
   availability_zones  = ["ap-southeast-2a"]
   desired_capacity    = var.desired_capacity
   max_size            = var.max_size
@@ -29,28 +24,16 @@ resource "aws_autoscaling_group" "autoscaling_group" {
 
     launch_template {
       launch_template_specification {
-        launch_template_id = aws_launch_template.launch_template.id
-      }
-
-      override {
-        instance_type     = "r6i.large"
-        weighted_capacity = "3"
-      }
-
-      override {
-        instance_type     = "r5n.large"
-        weighted_capacity = "2"
-      }
-
-      override {
-        instance_type     = "r5a.large"
-        weighted_capacity = "2"
-      }
-
-      override {
-        instance_type     = "r5.large"
-        weighted_capacity = "2"
+        launch_template_id = module.launch_template.launch_template_id
       }
     }
   }
+}
+
+resource "aws_autoscaling_lifecycle_hook" "detach_ebs_hook" {
+  name                    = "detach-ebs"
+  autoscaling_group_name  = aws_autoscaling_group.autoscaling_group.name
+  lifecycle_transition    = "autoscaling:EC2_INSTANCE_TERMINATING"
+  heartbeat_timeout       = 300
+  default_result          = "CONTINUE"
 }

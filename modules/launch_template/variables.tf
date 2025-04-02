@@ -33,5 +33,5 @@ variable "user_data" {
 }
 
 locals {
-  spot_price = data.aws_ec2_spot_price.current_spot_price[""]
+  spot_bid = data.aws_ec2_spot_price.current_spot_price["r6a.large"].spot_price * 1.02
 }

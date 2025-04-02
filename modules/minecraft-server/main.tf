@@ -1,37 +1,39 @@
-module "instance" {
-  source = "../ec2"
+module "asg" {
+  source = "../asg"
 
-  spot_instance     = var.spot_instance
+  ami_id                = var.ami_id
+  application           = var.application
 
-  ami               = var.ami_id
-  instance_type     = var.instance_type
-  root_volume_size  = var.root_volume_size
-  instance_tags       = {
-    "application" = "Minecraft Server"
-    "modpack" = var.modpack
-    "name" = var.name
-  }
+  desired_capacity      = var.desired_capacity
+  max_size              = 1
+  min_size              = 0
 
-  volume_tags         = {
-    "application" = "Minecraft Server Root Volume"
-    "modpack" = var.modpack
-    "name" = "${var.modpack}-root"
-  }
+  od_base_capacity      = var.spot_instance ? 0 : 1
+  od_percent_above_base = 0
+
+  volume_size           = var.root_volume_size
+
+  user_data = base64encode(templatefile("${path.module}/user_data.sh.tmpl", {
+    ebs_volume_id = module.volume.ebs_volume.id
+    aws_region    = var.aws_region
+    device_name   = var.ebs_volume.device_name
+    mountpoint    = var.ebs_volume.mountpoint
+  }))
 }
 
 module "volume" {
   source = "../ebs"
 
-  for_each = { for volume in var.ebs_volumes : volume.device_name => volume }
+  volume_size = var.ebs_volume.size
+  volume_type = var.ebs_volume.type
 
-  mount_point = each.value.mountpoint
-
-  volume_size = each.value.size
-  volume_type = each.value.type
-
-  tags         = {
-    "application" = "Minecraft Server Root Volume"
-    "modpack" = var.modpack
-    "name" = "${var.modpack}-root"
+  tags = {
+    "application" = "Minecraft Server Volume"
+    "modpack"     = var.modpack
+    "name"        = "${var.modpack}-data"
   }
+}
+
+resource "aws_eip" "elastic_ip" {
+  domain = "vpc"
 }

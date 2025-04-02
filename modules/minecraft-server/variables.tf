@@ -1,13 +1,31 @@
-variable "instance_type" {
-  type        = string
-  description = "Instance type"
-  default     = "r6a.large"
-}
-
 variable "spot_instance" {
   type        = bool
   default     = false
   description = "Should instance be spot"
+}
+
+variable "user_data" {
+  type        = string
+  default     = ""
+  description = "User Data" 
+}
+
+variable "aws_region" {
+  type        = string
+  default     = "ap-southeast-2"
+  description = "AWS Region"
+}
+
+variable "application" {
+  type        = string
+  description = "Application Name"
+  default     = "minecraft-server"
+}
+
+variable "desired_capacity" {
+  type        = number
+  default     = 1
+  description = "Desired Instance Count"
 }
 
 variable "name" {
@@ -32,8 +50,8 @@ variable "root_volume_size" {
   description = "Root volume size in gigabytes"
 }
 
-variable "ebs_volumes" {
-  type        = set(object({
+variable "ebs_volume" {
+  type        = object({
     mountpoint  = string
     device_name = string
     size        = number
@@ -41,9 +59,14 @@ variable "ebs_volumes" {
     uid         = string
     gid         = string
     mode        = string
-  }))
-  default = [
-    { mountpoint = "/data", device_name = "/dev/xvdj", size = 8, type = "gp3", uid = null, gid = null, mode = null }
-  ]
-  description = "List of ebs volumes to set up on this server"
+  })
+  default = {
+    mountpoint = "/data",
+    device_name = "/dev/xvdj",
+    size = 8,
+    type = "gp3",
+    uid = null,
+    gid = null,
+    mode = null }
+  description = "Ebs volume to attach to the instance"
 }

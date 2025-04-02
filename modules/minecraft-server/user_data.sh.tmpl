@@ -1,0 +1,55 @@
+#!/bin/bash
+
+VOLUME_ID="${ebs_volume_id}"  # Injected by Terraform
+INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+DEVICE_NAME="${device_name}"
+MOUNTPOINT="${mountpoint}"
+REGION="${aws_region}"  # Injected by Terraform
+
+# Attach the EBS volume to the instance & check if the volume is already attached
+if ! lsblk | grep -q "$DEVICE_NAME"; then
+  aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device $DEVICE_NAME --region $REGION
+  sleep 10
+  mount $DEVICE_NAME $MOUNTPOINT || (mkfs -t ext4 $DEVICE_NAME && mount $DEVICE_NAME $MOUNTPOINT)
+fi
+
+# Function to detach volume
+detach_volume() {
+    echo "Detaching volume $VOLUME_ID from instance $INSTANCE_ID"
+    aws ec2 detach-volume --volume-id $VOLUME_ID --region $REGION
+}
+
+# Attach the Elastic IP
+attach_eip() {
+  echo "Associating Elastic IP $EIP to instance $INSTANCE_ID"
+  aws ec2 associate-address --instance-id $INSTANCE_ID --public-ip $EIP --allow-reassociation --region $REGION
+}
+
+# Background process to watch for Spot termination notice
+nohup bash -c '
+while true; do
+    if curl -s http://169.254.169.254/latest/meta-data/spot/termination-time; then
+        echo "Spot instance termination notice received. Detaching volume..."
+        umount $MOUNTPOINT
+        detach_volume
+        break
+    fi
+    sleep 5
+done
+' &> /var/log/spot-instance-detach.log &
+
+# Create shutdown script
+echo '#!/bin/bash
+echo "Running shutdown script..."
+umount $MOUNTPOINT || echo "Volume already unmounted"
+detach_volume
+' | sudo tee /opt/detach-ebs.sh > /dev/null
+
+# Make the script executable
+sudo chmod +x /opt/detach-ebs.sh
+
+# Register the script to run on shutdown
+sudo bash -c 'echo "@reboot root /opt/detach-ebs.sh" >> /etc/crontab'
+sudo bash -c 'echo "0 0 * * * root /opt/detach-ebs.sh" >> /etc/crontab'
+
+attach_eip

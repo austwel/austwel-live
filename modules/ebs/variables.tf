@@ -18,8 +18,3 @@ variable "availability_zone" {
   description = "Availability Zone"
   default     = "ap-southeast-2a"
 }
-
-variable "mount_point" {
-  type        = string
-  description = "Location on instance to mount volume"
-}

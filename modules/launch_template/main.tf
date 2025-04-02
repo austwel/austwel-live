@@ -45,4 +45,10 @@ resource "aws_launch_template" "launch_template" {
 data "aws_ec2_spot_price" "current_spot_price" {
   for_each = var.instance_types
   instance_type = each.key
+  availability_zone = var.availability_zone
+  
+  filter {
+    name = "product-description"
+    values = ["Linux/UNIX"]
+  }
 }
