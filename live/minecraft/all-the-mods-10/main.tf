@@ -19,7 +19,7 @@ module "minecraft_server" {
 module "dns_record" {
   source = "../../../modules/dns"
 
-  name = "atm10"
+  name = "atm10.austwel.xyz"
   ip_address = module.minecraft_server.elastic_ip
 }
 
