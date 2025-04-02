@@ -1,0 +1,91 @@
+#!/bin/bash
+
+VOLUME_ID="${ebs_volume_id}"  # Injected by Terraform
+INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+DEVICE_NAME="${device_name}"
+LOCAL_DEVICE_NAME="${local_device_name}"
+MOUNTPOINT="${mountpoint}"
+REGION="${aws_region}"  # Injected by Terraform
+EIP="${elastic_ip}"
+
+# Attach the EBS volume to the instance & check if the volume is already attached
+if ! lsblk | grep -q "nvme1n1"; then
+  aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device $DEVICE_NAME --region $REGION
+  sleep 10
+  mkdir -p $MOUNTPOINT
+  mount $LOCAL_DEVICE_NAME $MOUNTPOINT || (mkfs -t ext4 $LOCAL_DEVICE_NAME && mount $LOCAL_DEVICE_NAME $MOUNTPOINT)
+fi
+
+# Attach the Elastic IP
+attach_eip() {
+  echo "Associating Elastic IP $EIP to instance $INSTANCE_ID"
+  aws ec2 associate-address --instance-id $INSTANCE_ID --public-ip $EIP --allow-reassociation --region $REGION
+}
+
+# Background process to watch for Spot termination notice
+nohup bash -c '
+while true; do
+    if curl -s http://169.254.169.254/latest/meta-data/spot/termination-time | grep -q .*T.*Z; then
+        echo "Spot instance termination notice received. Detaching volume..."
+        umount $MOUNTPOINT
+        echo "Detaching volume $VOLUME_ID from instance $INSTANCE_ID"
+        aws ec2 detach-volume --volume-id $VOLUME_ID --region $REGION
+        break
+    fi
+    sleep 5
+done
+' &> /var/log/spot-instance-detach.log &
+
+# Create shutdown script
+echo '#!/bin/bash
+VOLUME_ID="${ebs_volume_id}"  # Injected by Terraform
+INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+MOUNTPOINT="${mountpoint}"
+REGION="${aws_region}"  # Injected by Terraform
+
+echo "Running shutdown script..."
+umount $MOUNTPOINT || echo "Volume already unmounted"
+echo "Detaching volume $VOLUME_ID from instance $INSTANCE_ID"
+aws ec2 detach-volume --volume-id $VOLUME_ID --region $REGION
+' | sudo tee /opt/detach-ebs.sh > /dev/null
+
+# Make the script executable
+sudo chmod +x /opt/detach-ebs.sh
+
+# Register the script to run on shutdown
+sudo bash -c 'echo "@reboot root /opt/detach-ebs.sh" >> /etc/crontab'
+sudo bash -c 'echo "0 0 * * * root /opt/detach-ebs.sh" >> /etc/crontab'
+
+attach_eip
+
+# Install Docker
+sudo yum update -y && sudo amazon-linux-extras install docker -y
+sudo service docker start
+
+# Install Docker Compose
+sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/bin/docker-compose
+sudo chmod +x /usr/bin/docker-compose
+
+# Configure docker compose file
+echo 'services:
+  mc:
+    image: itzg/minecraft-server
+    tty: true
+    stdin_open: true
+    ports:
+      - "25565:25565"
+    environment:
+      EULA: "TRUE"
+      MEMORY: "12G"
+      SERVER_NAME: "${name}"
+      ALLOW_FLIGHT: "TRUE"
+      #CURSEFORGE
+      TYPE: AUTO_CURSEFORGE
+      CF_API_KEY: "${cf_api_key}"
+      CF_SLUG: "${modpack}"
+    volumes:
+      - /data:/data
+' | sudo tee /opt/docker-compose.yml > /dev/null
+
+# Run the server
+sudo docker-compose -f /opt/docker-compose.yml up
