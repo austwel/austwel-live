@@ -183,7 +183,7 @@ Apply them using:
 ##  Project Roadmap
 
 - [X] **`Task 1`**: <strike>Easily manage and provision modded minecraft servers.</strike>
-- [ ] **`Task 2`**: Incoporate the [Cloudflare](https://developers.cloudflare.com/terraform/) terraform provider to manage DNS records to elastic IPs, or just public ec2 ip addresses.
+- [X] **`Task 2`**: <strike>Incoporate the [Cloudflare](https://developers.cloudflare.com/terraform/) terraform provider to manage DNS records to elastic IPs, or just public ec2 ip addresses.</strike>
 - [ ] **`Task 3`**: Implement more modpack types, expanding upon just curseforge.
 - [ ] **`Task 4`**: Expand to cover more aws resources.
 
