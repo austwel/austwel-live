@@ -14,6 +14,11 @@ variable "ami_id" {
   description = "AMI ID to use"
 }
 
+variable "name" {
+  type        = string
+  description = "Name"
+}
+
 variable "volume_size" {
   type        = number
   default     = 8
@@ -53,4 +58,9 @@ variable  "od_percent_above_base" {
   type        = number
   default     = 0
   description = "On Demand Percentage Above Base Capacity"
+}
+
+variable "spot_price" {
+  type        = number
+  description = "Spot Price"
 }

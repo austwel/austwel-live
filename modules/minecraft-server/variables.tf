@@ -4,6 +4,11 @@ variable "spot_instance" {
   description = "Should instance be spot"
 }
 
+variable "spot_price" {
+  type        = number
+  description = "Spot Price Bid"
+}
+
 variable "user_data" {
   type        = string
   default     = ""

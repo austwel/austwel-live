@@ -1,12 +1,29 @@
+variable "name" {
+  type        = string
+  description = "Name"
+}
+
 variable "application" {
   type        = string
-  description = "Application Name"
+  description = "Application"
 }
 
 variable "availability_zone" {
   type        = string
   default     = "ap-southeast-2a"
   description = "Availability Zone"
+}
+
+variable "key_name" {
+  type        = string
+  default     = "default"
+  description = "Key Name"
+}
+
+variable "security_group_name" {
+  type        = string
+  default     = "launch-wizard-1"
+  description = "Security Group Name"
 }
 
 variable "instance_types" {
@@ -32,6 +49,8 @@ variable "user_data" {
   description = "User Data"
 }
 
-locals {
-  spot_bid = data.aws_ec2_spot_price.current_spot_price["r6a.large"].spot_price * 1.02
+variable "spot_max_price_percent" {
+  type        = number
+  default     = 10
+  description = "Max price percentage over lowest spot price"
 }

@@ -3,6 +3,7 @@ module "asg" {
 
   ami_id                = var.ami_id
   application           = var.application
+  name                  = var.name
 
   desired_capacity      = var.desired_capacity
   max_size              = 1
@@ -10,6 +11,7 @@ module "asg" {
 
   od_base_capacity      = var.spot_instance ? 0 : 1
   od_percent_above_base = 0
+  spot_price            = var.spot_price
 
   volume_size           = var.root_volume_size
 
@@ -18,6 +20,7 @@ module "asg" {
     aws_region    = var.aws_region
     device_name   = var.ebs_volume.device_name
     mountpoint    = var.ebs_volume.mountpoint
+    elastic_ip    = aws_eip.elastic_ip.public_ip
   }))
 }
 
@@ -30,10 +33,16 @@ module "volume" {
   tags = {
     "application" = "Minecraft Server Volume"
     "modpack"     = var.modpack
-    "name"        = "${var.modpack}-data"
+    "Name"        = "${var.modpack}-data"
   }
 }
 
 resource "aws_eip" "elastic_ip" {
   domain = "vpc"
+
+  tags = {
+    "application" = "Minecraft Server Elastic IP"
+    "modpack"     = var.modpack
+    "Name"        = "${var.modpack}-eip"
+  }
 }

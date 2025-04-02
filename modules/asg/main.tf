@@ -2,6 +2,7 @@ module "launch_template" {
   source = "../launch_template"
   
   ami_id = var.ami_id
+  name = var.name
   application = var.application
   availability_zone = var.availability_zone
   volume_size = var.volume_size
@@ -9,7 +10,7 @@ module "launch_template" {
 }
 
 resource "aws_autoscaling_group" "autoscaling_group" {
-  name                = "${var.application}-asg"
+  name                = "${var.name}-asg-${module.launch_template.launch_template_version}"
   availability_zones  = ["ap-southeast-2a"]
   desired_capacity    = var.desired_capacity
   max_size            = var.max_size
@@ -20,10 +21,12 @@ resource "aws_autoscaling_group" "autoscaling_group" {
       on_demand_base_capacity                   = var.od_base_capacity
       on_demand_percentage_above_base_capacity  = var.od_percent_above_base
       spot_allocation_strategy                  = "price-capacity-optimized"
+      spot_max_price = var.spot_price
     }
 
     launch_template {
       launch_template_specification {
+        version = "$Latest"
         launch_template_id = module.launch_template.launch_template_id
       }
     }

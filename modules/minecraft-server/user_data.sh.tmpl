@@ -5,19 +5,15 @@ INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 DEVICE_NAME="${device_name}"
 MOUNTPOINT="${mountpoint}"
 REGION="${aws_region}"  # Injected by Terraform
+EIP="${elastic_ip}"
 
 # Attach the EBS volume to the instance & check if the volume is already attached
 if ! lsblk | grep -q "$DEVICE_NAME"; then
   aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device $DEVICE_NAME --region $REGION
   sleep 10
+  mkdir $MOUNTPOINT
   mount $DEVICE_NAME $MOUNTPOINT || (mkfs -t ext4 $DEVICE_NAME && mount $DEVICE_NAME $MOUNTPOINT)
 fi
-
-# Function to detach volume
-detach_volume() {
-    echo "Detaching volume $VOLUME_ID from instance $INSTANCE_ID"
-    aws ec2 detach-volume --volume-id $VOLUME_ID --region $REGION
-}
 
 # Attach the Elastic IP
 attach_eip() {
@@ -27,11 +23,18 @@ attach_eip() {
 
 # Background process to watch for Spot termination notice
 nohup bash -c '
+
+VOLUME_ID="${ebs_volume_id}"  # Injected by Terraform
+INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+MOUNTPOINT="${mountpoint}"
+REGION="${aws_region}"  # Injected by Terraform
+
 while true; do
     if curl -s http://169.254.169.254/latest/meta-data/spot/termination-time; then
         echo "Spot instance termination notice received. Detaching volume..."
         umount $MOUNTPOINT
-        detach_volume
+        echo "Detaching volume $VOLUME_ID from instance $INSTANCE_ID"
+        aws ec2 detach-volume --volume-id $VOLUME_ID --region $REGION
         break
     fi
     sleep 5
@@ -40,9 +43,15 @@ done
 
 # Create shutdown script
 echo '#!/bin/bash
+VOLUME_ID="${ebs_volume_id}"  # Injected by Terraform
+INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+MOUNTPOINT="${mountpoint}"
+REGION="${aws_region}"  # Injected by Terraform
+
 echo "Running shutdown script..."
 umount $MOUNTPOINT || echo "Volume already unmounted"
-detach_volume
+echo "Detaching volume $VOLUME_ID from instance $INSTANCE_ID"
+aws ec2 detach-volume --volume-id $VOLUME_ID --region $REGION
 ' | sudo tee /opt/detach-ebs.sh > /dev/null
 
 # Make the script executable
