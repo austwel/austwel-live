@@ -16,6 +16,14 @@ module "minecraft_server" {
   modpack             = "ftb-oceanblock-2"
 }
 
+module "dns_record" {
+  source = "../../../modules/dns"
+
+  name = "ob2"
+  ip_address = module.minecraft_server.elastic_ip
+}
+
+
 output "ip_address" {
   value = module.minecraft_server.elastic_ip
   description = "Elastic IP Address"
