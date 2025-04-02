@@ -10,6 +10,8 @@ EIP="${elastic_ip}"
 
 # Attach the EBS volume to the instance & check if the volume is already attached
 if ! lsblk | grep -q "nvme1n1"; then
+  # Free the volume first
+  aws ec2 detach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --region $REGION
   aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device $DEVICE_NAME --region $REGION
   sleep 10
   mkdir -p $MOUNTPOINT
