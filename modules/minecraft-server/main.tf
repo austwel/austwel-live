@@ -21,6 +21,9 @@ module "asg" {
     device_name   = var.ebs_volume.device_name
     mountpoint    = var.ebs_volume.mountpoint
     elastic_ip    = aws_eip.elastic_ip.public_ip
+    modpack       = var.modpack
+    cf_api_key    = data.aws_secretsmanager_secret_version.cf_secret.secret_string
+    name          = var.name
   }))
 }
 
@@ -45,4 +48,12 @@ resource "aws_eip" "elastic_ip" {
     "modpack"     = var.modpack
     "Name"        = "${var.modpack}-eip"
   }
+}
+
+data "aws_secretsmanager_secret" "cf_secrets" {
+  arn = "arn:aws:secretsmanager:ap-southeast-2:017820703778:secret:CURSEFORGE-4TNmeo"
+}
+
+data "aws_secretsmanager_secret_version" "cf_secret" {
+  secret_id = data.aws_secretsmanager_secret.cf_secrets.id
 }

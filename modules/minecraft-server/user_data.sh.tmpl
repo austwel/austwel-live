@@ -8,11 +8,11 @@ REGION="${aws_region}"  # Injected by Terraform
 EIP="${elastic_ip}"
 
 # Attach the EBS volume to the instance & check if the volume is already attached
-if ! lsblk | grep -q "$DEVICE_NAME"; then
+if ! lsblk | grep -q "nvme1n1"; then
   aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device $DEVICE_NAME --region $REGION
   sleep 10
-  mkdir $MOUNTPOINT
-  mount $DEVICE_NAME $MOUNTPOINT || (mkfs -t ext4 $DEVICE_NAME && mount $DEVICE_NAME $MOUNTPOINT)
+  mkdir -p $MOUNTPOINT
+  mount /dev/nvme1n1 $MOUNTPOINT
 fi
 
 # Attach the Elastic IP
@@ -23,14 +23,8 @@ attach_eip() {
 
 # Background process to watch for Spot termination notice
 nohup bash -c '
-
-VOLUME_ID="${ebs_volume_id}"  # Injected by Terraform
-INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-MOUNTPOINT="${mountpoint}"
-REGION="${aws_region}"  # Injected by Terraform
-
 while true; do
-    if curl -s http://169.254.169.254/latest/meta-data/spot/termination-time; then
+    if curl -s http://169.254.169.254/latest/meta-data/spot/termination-time | grep -q .*T.*Z; then
         echo "Spot instance termination notice received. Detaching volume..."
         umount $MOUNTPOINT
         echo "Detaching volume $VOLUME_ID from instance $INSTANCE_ID"
@@ -62,3 +56,27 @@ sudo bash -c 'echo "@reboot root /opt/detach-ebs.sh" >> /etc/crontab'
 sudo bash -c 'echo "0 0 * * * root /opt/detach-ebs.sh" >> /etc/crontab'
 
 attach_eip
+
+# Configure docker compose file
+echo "
+services:
+  mc:
+    image: itzg/minecraft-server
+    tty: true
+    stdin_open: true
+    ports:
+      - "25565:25565"
+    environment:
+      EULA: "TRUE"
+      MEMORY: "12G"
+      SERVER_NAME: "${name}"
+      ALLOW_FLIGHT: "TRUE"
+      #CURSEFORGE
+      TYPE: AUTO_CURSEFORGE
+      CF_API_KEY: "${cf_api_key}"
+      CF_SLUG: "${modpack}"
+    volumes:
+      - /data:/data
+" > /opt/docker-compose.yml
+
+docker compose -f /opt/docker-compose.yml -d up

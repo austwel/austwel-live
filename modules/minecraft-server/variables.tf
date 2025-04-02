@@ -21,6 +21,12 @@ variable "aws_region" {
   description = "AWS Region"
 }
 
+variable "server_type" {
+  type        = string
+  default     = "vanilla"
+  description = "Server mod type"
+}
+
 variable "application" {
   type        = string
   description = "Application Name"
@@ -67,7 +73,7 @@ variable "ebs_volume" {
   })
   default = {
     mountpoint = "/data",
-    device_name = "/dev/xvdj",
+    device_name = "/dev/xvdb",
     size = 8,
     type = "gp3",
     uid = null,

@@ -51,6 +51,6 @@ variable "user_data" {
 
 variable "spot_max_price_percent" {
   type        = number
-  default     = 10
+  default     = 50
   description = "Max price percentage over lowest spot price"
 }

@@ -9,9 +9,14 @@ module "minecraft_server" {
   # Instance Settings
   ami_id              = "ami-0247cc7ea18d45e33"
   root_volume_size    = "8"
-  name                = "FTB OceanBlock 2"
+  name                = "ATM 10"
 
   # Minecraft Settings
   server_type         = "curseforge"
-  modpack             = "ftb-oceanblock-2"
+  modpack             = "all-the-mods-10"
+}
+
+output "ip_address" {
+  value = module.minecraft_server.aws_eip.elastic_ip.public_ip
+  description = "Elastic IP Address"
 }
