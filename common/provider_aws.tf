@@ -8,3 +8,8 @@ provider "aws" {
   shared_credentials_files = ["~/.aws/credentials"]
   profile = "default"
 }
+
+locals {
+  # Sydney
+  aws_region = "ap-southeast-2"
+}

@@ -4,7 +4,7 @@ module "minecraft_server" {
   # Pricing Settings
   spot_instance       = true
   spot_price          = 0.1
-  desired_capacity    = 1
+  desired_capacity    = var.start_server ? 1 : 0
 
   # Instance Settings
   root_volume_size    = "8"
@@ -19,4 +19,10 @@ module "minecraft_server" {
 output "ip_address" {
   value = module.minecraft_server.elastic_ip
   description = "Elastic IP Address"
+}
+
+variable "start_server" {
+  type        = bool
+  default     = true
+  description = "Should the server be running"
 }

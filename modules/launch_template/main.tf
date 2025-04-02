@@ -39,6 +39,13 @@ resource "aws_launch_template" "launch_template" {
     }
   }
 
+  tag_specifications {
+    resource_type = "volume"
+    tags = {
+      Name = "${var.uid}-root-volume"
+    }
+  }
+
   user_data = var.user_data
 }
 
@@ -54,7 +61,7 @@ data "aws_key_pair" "kp" {
 }
 
 resource "aws_iam_role" "role" {
-  name = "${var.application}-role"
+  name = "${var.uid}-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
@@ -70,7 +77,7 @@ resource "aws_iam_role" "role" {
 }
 
 resource "aws_iam_policy" "policy" {
-  name = "${var.application}-policy"
+  name = "${var.uid}-policy"
   
   policy = jsonencode({
     Version = "2012-10-17"
@@ -92,6 +99,6 @@ resource "aws_iam_role_policy_attachment" "attach_policy" {
 }
 
 resource "aws_iam_instance_profile" "instance_profile" {
-  name  = "${var.application}-instance-profile"
+  name  = "${var.uid}-instance-profile"
   role  = aws_iam_role.role.name
 }
