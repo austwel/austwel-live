@@ -1,5 +1,5 @@
 module "minecraft_server" {
-  source = "../../../modules/minecraft-server"
+  source = "../../../modules/minecraft_server"
 
   # Pricing Settings
   spot_instance       = true
