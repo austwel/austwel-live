@@ -9,6 +9,10 @@ provider "aws" {
   profile = "default"
 }
 
+provider "cloudflare" {
+  api_token = file("~/.cloudflare/credentials")
+}
+
 locals {
   # Sydney
   aws_region = "ap-southeast-2"
