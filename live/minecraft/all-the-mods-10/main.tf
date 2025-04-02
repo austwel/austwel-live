@@ -7,9 +7,9 @@ module "minecraft_server" {
   desired_capacity    = 1
 
   # Instance Settings
-  ami_id              = "ami-0247cc7ea18d45e33"
   root_volume_size    = "8"
   name                = "ATM 10"
+  uid                 = "atm-10"
 
   # Minecraft Settings
   server_type         = "curseforge"
@@ -17,6 +17,6 @@ module "minecraft_server" {
 }
 
 output "ip_address" {
-  value = module.minecraft_server.aws_eip.elastic_ip.public_ip
+  value = module.minecraft_server.elastic_ip
   description = "Elastic IP Address"
 }

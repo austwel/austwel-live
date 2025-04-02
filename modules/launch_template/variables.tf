@@ -49,6 +49,11 @@ variable "user_data" {
   description = "User Data"
 }
 
+variable "uid" {
+  type        = string
+  description = "Unique server id"
+}
+
 variable "spot_max_price_percent" {
   type        = number
   default     = 50

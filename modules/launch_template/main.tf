@@ -1,5 +1,5 @@
 resource "aws_launch_template" "launch_template" {
-  name = var.application
+  name = "${var.uid}-launch-template"
   description = "${var.name} launch template"
   
   image_id = var.ami_id

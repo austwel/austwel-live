@@ -15,6 +15,11 @@ variable "user_data" {
   description = "User Data" 
 }
 
+variable "uid" {
+  type        = string
+  description = "Unique server id"
+}
+
 variable "aws_region" {
   type        = string
   default     = "ap-southeast-2"
@@ -51,11 +56,6 @@ variable "modpack" {
   default     = "vanilla"
 }
 
-variable "ami_id" {
-  type        = string
-  description = "AMI ID"
-}
-
 variable "root_volume_size" {
   type        = string
   description = "Root volume size in gigabytes"
@@ -63,17 +63,19 @@ variable "root_volume_size" {
 
 variable "ebs_volume" {
   type        = object({
-    mountpoint  = string
-    device_name = string
-    size        = number
-    type        = string
-    uid         = string
-    gid         = string
-    mode        = string
+    mountpoint        = string
+    device_name       = string
+    local_device_name = string
+    size              = number
+    type              = string
+    uid               = string
+    gid               = string
+    mode              = string
   })
   default = {
     mountpoint = "/data",
     device_name = "/dev/xvdb",
+    local_device_name = "/dev/nvme1n1",
     size = 8,
     type = "gp3",
     uid = null,

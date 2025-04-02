@@ -1,9 +1,10 @@
 module "asg" {
   source = "../asg"
 
-  ami_id                = var.ami_id
+  ami_id                = "ami-04b78e495d6db9297"
   application           = var.application
   name                  = var.name
+  uid                   = var.uid
 
   desired_capacity      = var.desired_capacity
   max_size              = 1
@@ -16,14 +17,15 @@ module "asg" {
   volume_size           = var.root_volume_size
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh.tmpl", {
-    ebs_volume_id = module.volume.ebs_volume.id
-    aws_region    = var.aws_region
-    device_name   = var.ebs_volume.device_name
-    mountpoint    = var.ebs_volume.mountpoint
-    elastic_ip    = aws_eip.elastic_ip.public_ip
-    modpack       = var.modpack
-    cf_api_key    = data.aws_secretsmanager_secret_version.cf_secret.secret_string
-    name          = var.name
+    ebs_volume_id       = module.volume.ebs_volume.id
+    aws_region          = var.aws_region
+    device_name         = var.ebs_volume.device_name
+    local_device_name   = var.ebs_volume.local_device_name
+    mountpoint          = var.ebs_volume.mountpoint
+    elastic_ip          = aws_eip.elastic_ip.public_ip
+    modpack             = var.modpack
+    cf_api_key          = data.aws_secretsmanager_secret_version.cf_secret.secret_string
+    name                = var.name
   }))
 }
 
@@ -51,7 +53,7 @@ resource "aws_eip" "elastic_ip" {
 }
 
 data "aws_secretsmanager_secret" "cf_secrets" {
-  arn = "arn:aws:secretsmanager:ap-southeast-2:017820703778:secret:CURSEFORGE-4TNmeo"
+  arn = "arn:aws:secretsmanager:ap-southeast-2:017820703778:secret:curseforge_api_key-zKpLdI"
 }
 
 data "aws_secretsmanager_secret_version" "cf_secret" {

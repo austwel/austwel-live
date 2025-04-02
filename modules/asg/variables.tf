@@ -14,6 +14,11 @@ variable "ami_id" {
   description = "AMI ID to use"
 }
 
+variable "uid" {
+  type        = string
+  description = "Unique server id"
+}
+
 variable "name" {
   type        = string
   description = "Name"

@@ -3,6 +3,7 @@ module "launch_template" {
   
   ami_id = var.ami_id
   name = var.name
+  uid = var.uid
   application = var.application
   availability_zone = var.availability_zone
   volume_size = var.volume_size
@@ -10,7 +11,7 @@ module "launch_template" {
 }
 
 resource "aws_autoscaling_group" "autoscaling_group" {
-  name                = "${var.name}-asg-${module.launch_template.launch_template_version}"
+  name                = "${var.uid}-asg-${module.launch_template.launch_template_version}"
   availability_zones  = ["ap-southeast-2a"]
   desired_capacity    = var.desired_capacity
   max_size            = var.max_size
