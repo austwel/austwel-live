@@ -13,14 +13,13 @@ resource "aws_launch_template" "launch_template" {
 
   instance_requirements {
     spot_max_price_percentage_over_lowest_price = var.spot_max_price_percent
-    allowed_instance_types = var.instance_types
     memory_mib {
-      min = 16384
-      max = 16384
+      min = var.memory_mib
+      max = var.memory_mib
     }
     vcpu_count {
-      min = 2
-      max = 2
+      min = var.vcpu_count
+      max = var.vcpu_count
     }
   }
 

@@ -16,6 +16,9 @@ module "asg" {
 
   volume_size           = var.root_volume_size
 
+  memory_mib            = var.memory_mib
+  vcpu_count            = var.vcpu_count
+
   user_data = base64encode(templatefile("${path.module}/user_data.sh.tmpl", {
     ebs_volume_id       = module.volume.ebs_volume.id
     aws_region          = var.aws_region
@@ -26,6 +29,7 @@ module "asg" {
     modpack             = var.modpack
     cf_api_key          = data.aws_secretsmanager_secret_version.cf_secret.secret_string
     name                = var.name
+    memory_mib          = "${var.memory_mib * 0.8}"
   }))
 }
 

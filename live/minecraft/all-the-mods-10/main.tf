@@ -10,6 +10,8 @@ module "minecraft_server" {
   root_volume_size    = "8"
   name                = "ATM 10"
   uid                 = "atm-10"
+  memory_mib          = 16384
+  vcpu_count          = 2
 
   # Minecraft Settings
   server_type         = "curseforge"

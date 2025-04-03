@@ -8,6 +8,9 @@ module "launch_template" {
   availability_zone = var.availability_zone
   volume_size = var.volume_size
   user_data = var.user_data
+
+  memory_mib = var.memory_mib
+  vcpu_count = var.vcpu_count
 }
 
 resource "aws_autoscaling_group" "autoscaling_group" {

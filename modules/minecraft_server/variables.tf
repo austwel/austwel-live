@@ -4,6 +4,18 @@ variable "spot_instance" {
   description = "Should instance be spot"
 }
 
+variable "memory_mib" {
+  type        = number
+  default     = 16384
+  description = "Memory requirements for the instance"
+}
+
+variable "vcpu_count" {
+  type        = number
+  default     = 2
+  description = "CPU requirements for the instance"
+}
+
 variable "spot_price" {
   type        = number
   description = "Spot Price Bid"
