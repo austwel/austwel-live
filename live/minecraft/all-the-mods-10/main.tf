@@ -10,6 +10,8 @@ module "minecraft_server" {
   root_volume_size    = "8"
   name                = "ATM 10"
   uid                 = "atm-10"
+  memory_mib          = 16384
+  vcpu_count          = 2
 
   # Minecraft Settings
   server_type         = "curseforge"
@@ -18,13 +20,14 @@ module "minecraft_server" {
 
 module "dns_record" {
   source = "../../../modules/dns"
+  count = var.start_server ? 1 : 0
 
   name = "atm10.austwel.xyz"
-  ip_address = module.minecraft_server.elastic_ip
+  ip_address = module.minecraft_server.elastic_ip[0]
 }
 
 output "ip_address" {
-  value = module.minecraft_server.elastic_ip
+  value = module.minecraft_server[*].elastic_ip
   description = "Elastic IP Address"
 }
 

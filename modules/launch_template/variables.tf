@@ -8,6 +8,16 @@ variable "application" {
   description = "Application"
 }
 
+variable "memory_mib" {
+  type        = number
+  description = "Memory requirements for the instance"
+}
+
+variable "vcpu_count" {
+  type        = number
+  description = "CPU requirements for the instance"
+}
+
 variable "availability_zone" {
   type        = string
   default     = "ap-southeast-2a"
@@ -24,12 +34,6 @@ variable "security_group_name" {
   type        = string
   default     = "launch-wizard-1"
   description = "Security Group Name"
-}
-
-variable "instance_types" {
-  type        = set(string)
-  default     = [ "r6a.large", "r6i.large", "r6in.large", "r5n.large", "r5a.large", "r5.large" ]
-  description = "Instance Types"
 }
 
 variable "volume_size" {

@@ -16,16 +16,20 @@ module "asg" {
 
   volume_size           = var.root_volume_size
 
+  memory_mib            = var.memory_mib
+  vcpu_count            = var.vcpu_count
+
   user_data = base64encode(templatefile("${path.module}/user_data.sh.tmpl", {
     ebs_volume_id       = module.volume.ebs_volume.id
     aws_region          = var.aws_region
     device_name         = var.ebs_volume.device_name
     local_device_name   = var.ebs_volume.local_device_name
     mountpoint          = var.ebs_volume.mountpoint
-    elastic_ip          = aws_eip.elastic_ip.public_ip
+    elastic_ip          = length(aws_eip.elastic_ip) > 0 ? aws_eip.elastic_ip[0].public_ip : ""
     modpack             = var.modpack
     cf_api_key          = data.aws_secretsmanager_secret_version.cf_secret.secret_string
     name                = var.name
+    memory_mib          = "${var.memory_mib * 0.8}"
   }))
 }
 
@@ -43,6 +47,7 @@ module "volume" {
 }
 
 resource "aws_eip" "elastic_ip" {
+  count = var.desired_capacity > 0 ? 1 : 0
   domain = "vpc"
 
   tags = {

@@ -20,8 +20,10 @@ fi
 
 # Attach the Elastic IP
 attach_eip() {
-  echo "Associating Elastic IP $EIP to instance $INSTANCE_ID"
-  aws ec2 associate-address --instance-id $INSTANCE_ID --public-ip $EIP --allow-reassociation --region $REGION
+  if [ -n "$EIP" ]; then
+    echo "Associating Elastic IP $EIP to instance $INSTANCE_ID"
+    aws ec2 associate-address --instance-id $INSTANCE_ID --public-ip $EIP --allow-reassociation --region $REGION
+  fi
 }
 
 # Background process to watch for Spot termination notice
@@ -78,7 +80,7 @@ echo 'services:
       - "25565:25565"
     environment:
       EULA: "TRUE"
-      MEMORY: "12G"
+      MEMORY: "${memory_mib}m"
       SERVER_NAME: "${name}"
       ALLOW_FLIGHT: "TRUE"
       #CURSEFORGE

@@ -9,6 +9,16 @@ variable "availability_zone" {
   default     = "ap-southeast-2a"
 }
 
+variable "memory_mib" {
+  type        = number
+  description = "Memory requirements for the instance"
+}
+
+variable "vcpu_count" {
+  type        = number
+  description = "CPU requirements for the instance"
+}
+
 variable "ami_id" {
   type        = string
   description = "AMI ID to use"
