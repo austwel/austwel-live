@@ -1,17 +1,15 @@
 #!/bin/bash
 
-VOLUME_ID="${ebs_volume_id}"  # Injected by Terraform
+VOLUME_ID="${ebs_volume_id}"
 INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 DEVICE_NAME="${device_name}"
 LOCAL_DEVICE_NAME="${local_device_name}"
 MOUNTPOINT="${mountpoint}"
-REGION="${aws_region}"  # Injected by Terraform
+REGION="${aws_region}"
 EIP="${elastic_ip}"
 
 # Attach the EBS volume to the instance & check if the volume is already attached
-if ! lsblk | grep -q "nvme1n1"; then
-  # Free the volume first
-  aws ec2 detach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --region $REGION
+if ! lsblk | grep -q $(basename "$LOCAL_DEVICE_NAME"); then
   aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device $DEVICE_NAME --region $REGION
   sleep 10
   mkdir -p $MOUNTPOINT
@@ -41,34 +39,34 @@ done
 ' &> /var/log/spot-instance-detach.log &
 
 # Create shutdown script
-echo '#!/bin/bash
-VOLUME_ID="${ebs_volume_id}"  # Injected by Terraform
-INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-MOUNTPOINT="${mountpoint}"
-REGION="${aws_region}"  # Injected by Terraform
+# echo '#!/bin/bash
+# VOLUME_ID="${ebs_volume_id}"  # Injected by Terraform
+# INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+# MOUNTPOINT="${mountpoint}"
+# REGION="${aws_region}"  # Injected by Terraform
 
-echo "Running shutdown script..."
-umount $MOUNTPOINT || echo "Volume already unmounted"
-echo "Detaching volume $VOLUME_ID from instance $INSTANCE_ID"
-aws ec2 detach-volume --volume-id $VOLUME_ID --region $REGION
-' | sudo tee /opt/detach-ebs.sh > /dev/null
+# echo "Running shutdown script..."
+# umount $MOUNTPOINT || echo "Volume already unmounted"
+# echo "Detaching volume $VOLUME_ID from instance $INSTANCE_ID"
+# aws ec2 detach-volume --volume-id $VOLUME_ID --region $REGION
+# ' | sudo tee /opt/detach-ebs.sh > /dev/null
 
 # Make the script executable
-sudo chmod +x /opt/detach-ebs.sh
+# chmod +x /opt/detach-ebs.sh
 
 # Register the script to run on shutdown
-sudo bash -c 'echo "@reboot root /opt/detach-ebs.sh" >> /etc/crontab'
-sudo bash -c 'echo "0 0 * * * root /opt/detach-ebs.sh" >> /etc/crontab'
+# bash -c 'echo "@reboot root /opt/detach-ebs.sh" >> /etc/crontab'
+# bash -c 'echo "0 0 * * * root /opt/detach-ebs.sh" >> /etc/crontab'
 
 attach_eip
 
 # Install Docker
-sudo yum update -y && sudo amazon-linux-extras install docker -y
-sudo service docker start
+yum update -y && sudo amazon-linux-extras install docker -y
+service docker start
 
 # Install Docker Compose
-sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/bin/docker-compose
-sudo chmod +x /usr/bin/docker-compose
+curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/bin/docker-compose
+chmod +x /usr/bin/docker-compose
 
 # Configure docker compose file
 echo 'services:
@@ -80,7 +78,7 @@ echo 'services:
       - "25565:25565"
     environment:
       EULA: "TRUE"
-      MEMORY: "${memory_mib}m"
+      MEMORY: "${server_memory}"
       SERVER_NAME: "${name}"
       ALLOW_FLIGHT: "TRUE"
       #CURSEFORGE
@@ -89,7 +87,7 @@ echo 'services:
       CF_SLUG: "${modpack}"
     volumes:
       - /data:/data
-' | sudo tee /opt/docker-compose.yml > /dev/null
+' | tee /opt/docker-compose.yml > /dev/null
 
 # Run the server
-sudo docker-compose -f /opt/docker-compose.yml up
+docker-compose -f /opt/docker-compose.yml up

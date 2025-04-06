@@ -20,6 +20,8 @@ resource "aws_autoscaling_group" "autoscaling_group" {
   max_size            = var.max_size
   min_size            = var.min_size
 
+  force_delete        = true
+
   mixed_instances_policy {
     instances_distribution {
       on_demand_base_capacity                   = var.od_base_capacity

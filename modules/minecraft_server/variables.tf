@@ -27,6 +27,11 @@ variable "user_data" {
   description = "User Data" 
 }
 
+variable "server_memory" {
+  type        = string
+  description = "Server Memory" 
+}
+
 variable "uid" {
   type        = string
   description = "Unique server id"

@@ -16,6 +16,7 @@ module "minecraft_server" {
   # Minecraft Settings
   server_type         = "curseforge"
   modpack             = "all-the-mods-10"
+  server_memory       = "12G"
 }
 
 module "dns_record" {

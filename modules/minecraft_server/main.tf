@@ -29,7 +29,7 @@ module "asg" {
     modpack             = var.modpack
     cf_api_key          = data.aws_secretsmanager_secret_version.cf_secret.secret_string
     name                = var.name
-    memory_mib          = "${var.memory_mib * 0.8}"
+    server_memory       = var.server_memory
   }))
 }
 
