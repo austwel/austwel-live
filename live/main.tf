@@ -7,6 +7,16 @@ module "all_the_mods_10" {
 module "ftb_oceanblock_2" {
   source = "./minecraft/ftb-oceanblock-2"
 
+  start_server  = false
+}
+
+module "cosmic_frontiers" {
+  source = "./minecraft/cosmic-frontiers"
+
   start_server  = true
   main_server   = true
+}
+
+module "boys" {
+  source = "./perms_for_the_boys"
 }

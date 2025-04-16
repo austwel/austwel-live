@@ -8,13 +8,47 @@ MOUNTPOINT="${mountpoint}"
 REGION="${aws_region}"
 EIP="${elastic_ip}"
 
-# Attach the EBS volume to the instance & check if the volume is already attached
-if ! lsblk | grep -q $(basename "$LOCAL_DEVICE_NAME"); then
-  aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device $DEVICE_NAME --region $REGION
-  sleep 10
-  mkdir -p $MOUNTPOINT
-  mount $LOCAL_DEVICE_NAME $MOUNTPOINT || (mkfs -t ext4 $LOCAL_DEVICE_NAME && mount $LOCAL_DEVICE_NAME $MOUNTPOINT)
-fi
+# Wait for volume to become available
+wait_for_volume() {
+  echo "Waiting for volume $VOLUME_ID to become available..."
+  while true; do
+    state=$(aws ec2 describe-volumes --volume-ids $VOLUME_ID --region $REGION --query 'Volumes[0].State' --output text)
+    if [ "$state" == "available" ]; then
+      break
+    fi
+    echo "Volume state is $state. Sleeping 5s..."
+    sleep 5
+  done
+}
+
+# Attach the volume
+attach_volume() {
+  retries=5
+  for i in $(seq 1 $retries); do
+    echo "Attempting to attach volume (try $i)..."
+    aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device $DEVICE_NAME --region $REGION && return 0
+    sleep $((i * 5))
+  done
+  echo "Failed to attach volume after $retries attempts"
+  exit 1
+}
+
+# Wait for device to appear
+wait_for_device() {
+  retries=5
+  for i in $(seq 1 $retries); do
+    [ -b "$LOCAL_DEVICE_NAME" ] && return 0
+    echo "Waiting for $LOCAL_DEVICE_NAME to appear..."
+    sleep 5
+  done
+  echo "Failed to find device"
+  exit 1
+}
+
+# Mount the volume
+mount_device() {
+
+}
 
 # Attach the Elastic IP
 attach_eip() {
@@ -23,6 +57,14 @@ attach_eip() {
     aws ec2 associate-address --instance-id $INSTANCE_ID --public-ip $EIP --allow-reassociation --region $REGION
   fi
 }
+
+
+
+wait_for_volume
+attach_volume
+wait_for_device
+mount_device
+attach_eip
 
 # Background process to watch for Spot termination notice
 nohup bash -c '
@@ -37,28 +79,6 @@ while true; do
     sleep 5
 done
 ' &> /var/log/spot-instance-detach.log &
-
-# Create shutdown script
-# echo '#!/bin/bash
-# VOLUME_ID="${ebs_volume_id}"  # Injected by Terraform
-# INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-# MOUNTPOINT="${mountpoint}"
-# REGION="${aws_region}"  # Injected by Terraform
-
-# echo "Running shutdown script..."
-# umount $MOUNTPOINT || echo "Volume already unmounted"
-# echo "Detaching volume $VOLUME_ID from instance $INSTANCE_ID"
-# aws ec2 detach-volume --volume-id $VOLUME_ID --region $REGION
-# ' | sudo tee /opt/detach-ebs.sh > /dev/null
-
-# Make the script executable
-# chmod +x /opt/detach-ebs.sh
-
-# Register the script to run on shutdown
-# bash -c 'echo "@reboot root /opt/detach-ebs.sh" >> /etc/crontab'
-# bash -c 'echo "0 0 * * * root /opt/detach-ebs.sh" >> /etc/crontab'
-
-attach_eip
 
 # Install Docker
 yum update -y && sudo amazon-linux-extras install docker -y

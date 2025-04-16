@@ -8,22 +8,22 @@ module "minecraft_server" {
 
   # Instance Settings
   root_volume_size    = "8"
-  name                = "FTB OceanBlock 2"
-  uid                 = "ftb-oceanblock-2"
+  name                = "Cosmic Frontiers"
+  uid                 = "cosmic-frontiers"
   memory_mib          = 16384
   vcpu_count          = 2
 
   # Minecraft Settings
   server_memory       = "12G"
   server_type         = "curseforge"
-  modpack             = "ftb-oceanblock-2"
+  modpack             = "cosmic-frontiers"
 }
 
 module "dns_record" {
   source = "../../../modules/dns"
   count = var.start_server ? 1 : 0
 
-  name = "ob2.austwel.xyz"
+  name = "cf.austwel.xyz"
   ip_address = module.minecraft_server.elastic_ip[0]
 }
 
