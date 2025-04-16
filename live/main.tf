@@ -17,6 +17,6 @@ module "cosmic_frontiers" {
   main_server   = true
 }
 
-module "boys" {
-  source = "./perms_for_the_boys"
+module "access" {
+  source = "./iam"
 }

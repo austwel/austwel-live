@@ -84,6 +84,7 @@ resource "aws_iam_policy" "policy" {
       Effect = "Allow"
       Action = [
         "ec2:AttachVolume",
+        "ec2:DescribeVolumes",
         "ec2:DetachVolume",
         "ec2:AssociateAddress"
       ]

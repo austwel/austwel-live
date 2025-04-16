@@ -1,4 +1,5 @@
 #!/bin/bash
+echo "Starting bootstrap..."
 
 VOLUME_ID="${ebs_volume_id}"
 INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
@@ -20,6 +21,7 @@ wait_for_volume() {
     sleep 5
   done
 }
+wait_for_volume
 
 # Attach the volume
 attach_volume() {
@@ -32,6 +34,7 @@ attach_volume() {
   echo "Failed to attach volume after $retries attempts"
   exit 1
 }
+attach_volume
 
 # Wait for device to appear
 wait_for_device() {
@@ -44,11 +47,19 @@ wait_for_device() {
   echo "Failed to find device"
   exit 1
 }
+wait_for_device
 
 # Mount the volume
 mount_device() {
-
+  if [ -b "$LOCAL_DEVICE_NAME" ]; then
+    mkdir -p $MOUNTPOINT
+    mount $LOCAL_DEVICE_NAME $MOUNTPOINT || (mkfs -t ext4 $LOCAL_DEVICE_NAME && mount $LOCAL_DEVICE_NAME $MOUNTPOINT)
+  else
+    echo "Device $LOCAL_DEVICE_NAME not found."
+    exit 1
+  fi
 }
+mount_device
 
 # Attach the Elastic IP
 attach_eip() {
@@ -57,28 +68,7 @@ attach_eip() {
     aws ec2 associate-address --instance-id $INSTANCE_ID --public-ip $EIP --allow-reassociation --region $REGION
   fi
 }
-
-
-
-wait_for_volume
-attach_volume
-wait_for_device
-mount_device
 attach_eip
-
-# Background process to watch for Spot termination notice
-nohup bash -c '
-while true; do
-    if curl -s http://169.254.169.254/latest/meta-data/spot/termination-time | grep -q .*T.*Z; then
-        echo "Spot instance termination notice received. Detaching volume..."
-        umount $MOUNTPOINT
-        echo "Detaching volume $VOLUME_ID from instance $INSTANCE_ID"
-        aws ec2 detach-volume --volume-id $VOLUME_ID --region $REGION
-        break
-    fi
-    sleep 5
-done
-' &> /var/log/spot-instance-detach.log &
 
 # Install Docker
 yum update -y && sudo amazon-linux-extras install docker -y
