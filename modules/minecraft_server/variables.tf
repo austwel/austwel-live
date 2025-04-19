@@ -78,11 +78,19 @@ variable "root_volume_size" {
   description = "Root volume size in gigabytes"
 }
 
+variable "schedule" {
+  type = object ({
+    scale_up    = string
+    scale_down  = string
+  })
+  default = null
+  description = "Schedule to start/stop the server"
+}
+
 variable "ebs_volume" {
   type        = object({
     mountpoint        = string
     device_name       = string
-    local_device_name = string
     size              = number
     type              = string
     uid               = string
@@ -92,7 +100,6 @@ variable "ebs_volume" {
   default = {
     mountpoint = "/data",
     device_name = "/dev/xvdb",
-    local_device_name = "/dev/nvme1n1",
     size = 8,
     type = "gp3",
     uid = null,

@@ -3,18 +3,24 @@ module "minecraft_server" {
 
   # Pricing Settings
   spot_instance       = true
-  spot_price          = 0.15
+  spot_price          = 0.2
   desired_capacity    = var.start_server ? 1 : 0
 
   # Instance Settings
   root_volume_size    = "8"
   name                = "Cosmic Frontiers"
   uid                 = "cosmic-frontiers"
-  memory_mib          = 16384
-  vcpu_count          = 2
+  memory_mib          = 1024 * 32
+  vcpu_count          = 4
+
+  # Schedule Settings
+  schedule            = {
+    scale_up = "0 6 * * *" # Turn on server at 0600Z ~ 4PM AEST
+    scale_down = "0 18 * * *" # Turn off server at 1500Z ~ 4AM AEST
+  }
 
   # Minecraft Settings
-  server_memory       = "12G"
+  server_memory       = "30G"
   server_type         = "curseforge"
   modpack             = "cosmic-frontiers"
 }

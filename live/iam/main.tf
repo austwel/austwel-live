@@ -19,7 +19,8 @@ module "access" {
     {
       Effect = "Allow"
       Action = [
-        "ec2:DescribeInstances"
+        "ec2:DescribeInstances",
+        "ec2:DescribeVolumes"
       ]
       Resource = "*"
     }
