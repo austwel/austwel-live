@@ -9,7 +9,7 @@ REGION="${aws_region}"
 EIP="${elastic_ip}"
 SERVER_MEMORY="${server_memory}"
 SERVER_NAME="${name}"
-CF_API_KEY_ESCAPED="${cf_api_key_escaped}"
+CF_API_KEY_ESCAPED="$(printf '%s' ${cf_api_key_escaped} | sed 's/\$/\$\$/g')"
 MODPACK="${modpack}"
 
 # ----------- Derived Values --------------
