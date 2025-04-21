@@ -35,23 +35,23 @@ module "asg" {
 resource "aws_autoscaling_schedule" "scale_up" {
   count = var.schedule != null ? 1 : 0
 
-  scheduled_action_name = "scale_up"
-  min_size = 0
-  max_size = 1
-  desired_capacity = 1
-  recurrence = var.schedule.scale_up
-  autoscaling_group_name = module.asg.asg.name
+  scheduled_action_name   = "scale_up"
+  min_size                = 0
+  max_size                = 1
+  desired_capacity        = 1
+  recurrence              = var.schedule.scale_up
+  autoscaling_group_name  = module.asg.asg.name
 }
 
 resource "aws_autoscaling_schedule" "scale_down" {
   count = var.schedule != null ? 1 : 0
 
-  scheduled_action_name = "scale_down"
-  min_size = 0
-  max_size = 1
-  desired_capacity = 0
-  recurrence = var.schedule.scale_down
-  autoscaling_group_name = module.asg.asg.name
+  scheduled_action_name   = "scale_down"
+  min_size                = 0
+  max_size                = 1
+  desired_capacity        = 0
+  recurrence              = var.schedule.scale_down
+  autoscaling_group_name  = module.asg.asg.name
 }
 
 module "volume" {
@@ -67,9 +67,18 @@ module "volume" {
   }
 }
 
+module "snapshots" {
+  source = "../dlm"
+
+  state               = var.desired_capacity > 0 ? "ENABLED" : "DISABLED"
+  volume_name         = module.volume.volume_name
+  snapshot_frequency  = 1
+  snapshot_days       = 7
+}
+
 resource "aws_eip" "elastic_ip" {
-  count = var.desired_capacity > 0 ? 1 : 0
-  domain = "vpc"
+  count   = var.desired_capacity > 0 ? 1 : 0
+  domain  = "vpc"
 
   tags = {
     "application" = "Minecraft Server Elastic IP"
