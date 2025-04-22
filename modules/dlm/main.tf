@@ -1,10 +1,11 @@
 resource "aws_dlm_lifecycle_policy" "ebs_snapshots" {
-  description = "EBS snapshot policy for ${var.volume_name}"
-  execution_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/AWSDataLifecycleManagerDefaultRole"
+  description         = "EBS snapshot policy for ${var.volume_name}"
+  execution_role_arn  = data.aws_iam_role.dlm.arn
   state               = var.state
 
   policy_details {
-    resource_types = ["VOLUME"]
+    policy_type     = "EBS_SNAPSHOT_MANAGEMENT"
+    resource_types  = ["VOLUME"]
 
     target_tags = {
       Snapshot = var.volume_name
@@ -30,4 +31,6 @@ resource "aws_dlm_lifecycle_policy" "ebs_snapshots" {
   }
 }
 
-data "aws_caller_identity" "current" {}
+data "aws_iam_role" "dlm" {
+  name = "AWSDataLifecycleManagerDefaultRole"
+}

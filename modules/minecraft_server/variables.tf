@@ -87,6 +87,30 @@ variable "schedule" {
   description = "Schedule to start/stop the server"
 }
 
+variable "modpack_zip" {
+  type = string
+  description = "Custom modpack zip location"
+  default = ""
+}
+
+variable "manifest" {
+  type = string
+  description = "Optional Manifest file"
+  default = ""
+}
+
+variable "exclude" {
+  type = string
+  description = "Client-side mods to force exclude"
+  default = ""
+}
+
+variable "include" {
+  type = string
+  description = "Missing mods to force include"
+  default = ""
+}
+
 variable "ebs_volume" {
   type        = object({
     mountpoint        = string

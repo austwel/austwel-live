@@ -29,6 +29,10 @@ module "asg" {
     cf_api_key_escaped  = replace(data.aws_secretsmanager_secret_version.cf_secret.secret_string, "$", "\\$")
     name                = var.name
     server_memory       = var.server_memory
+    modpack_zip         = var.modpack_zip
+    manifest            = var.manifest
+    exclude             = var.exclude
+    include             = var.include
   }))
 }
 
@@ -63,7 +67,8 @@ module "volume" {
   tags = {
     "application" = "Minecraft Server Volume"
     "modpack"     = var.modpack
-    "Name"        = "${var.modpack}-data"
+    "Name"        = "${var.uid}-data"
+    "Snapshot"    = "${var.uid}-data"
   }
 }
 
@@ -83,7 +88,7 @@ resource "aws_eip" "elastic_ip" {
   tags = {
     "application" = "Minecraft Server Elastic IP"
     "modpack"     = var.modpack
-    "Name"        = "${var.modpack}-eip"
+    "Name"        = "${var.uid}-eip"
   }
 }
 

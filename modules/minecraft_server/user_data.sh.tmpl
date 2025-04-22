@@ -12,6 +12,12 @@ SERVER_NAME="${name}"
 CF_API_KEY_ESCAPED="$(printf '%s' ${cf_api_key_escaped} | sed 's/\$/\$\$/g')"
 MODPACK="${modpack}"
 
+# ----------- Optional -------------
+$MODPACK_ZIP="${modpack_zip}"
+$MANIFEST="${manifest}"
+$EXCLUDE="${exclude}"
+$INCLUDE="${include}"
+
 # ----------- Derived Values --------------
 INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
 
@@ -118,6 +124,16 @@ attach_eip() {
 }
 attach_eip
 
+# ----------- Download the modpack -------------
+if [[ -n "$MODPACK_ZIP" ]]; then
+  echo "Downloading the modpack zip file from remote source..."
+  MODPACK_FILENAME=$(echo "$MODPACK_ZIP" | sed 's:.*/::')
+  mkdir -p "/data/modpack"
+  MODPACK_LOC="/data/modpack/$MODPACK_FILENAME"
+  rm "$MODPACK_LOC"
+  curl -L "$MODPACK_ZIP" -o "$MODPACK_LOC"
+fi
+
 # ----------- Install Docker (Amazon Linux 2 or 2023) -------------
 OS_VERSION_ID=$(grep -oP '(?<=^VERSION_ID=")[^"]+' /etc/os-release)
 
@@ -151,9 +167,16 @@ printf '%s\n' "services:
       MEMORY: \"$SERVER_MEMORY\"
       SERVER_NAME: \"$SERVER_NAME\"
       ALLOW_FLIGHT: \"TRUE\"
+      FORCE_GAMEMODE: \"TRUE\"
+      STOP_SERVER_ANNOUNCE_DELAY: 30
+      DIFFICULTY: \"HARD\"
       TYPE: AUTO_CURSEFORGE
       CF_API_KEY: \"$CF_API_KEY_ESCAPED\"
       CF_SLUG: \"$MODPACK\"
+      CF_MODPACK_ZIP: \"$MODPACK_LOC\"
+      CF_MODPACK_MANIFEST: \"$MANIFEST\"
+      CF_EXCLUDE_MODS: \"$EXCLUDE\"
+      CF_FORCE_INCLUDE_MODS: \"$INCLUDE\"
     volumes:
       - \"/data:$MOUNTPOINT\"" > /opt/docker-compose.yml
 
