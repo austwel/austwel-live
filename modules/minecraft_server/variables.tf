@@ -4,9 +4,8 @@ variable "spot_instance" {
   description = "Should instance be spot"
 }
 
-variable "memory_mib" {
+variable "memory_gib" {
   type        = number
-  default     = 16384
   description = "Memory requirements for the instance"
 }
 
@@ -28,8 +27,9 @@ variable "user_data" {
 }
 
 variable "server_memory" {
-  type        = string
-  description = "Server Memory" 
+  type        = number
+  description = "Server Memory"
+  default = null
 }
 
 variable "uid" {
@@ -41,12 +41,6 @@ variable "aws_region" {
   type        = string
   default     = "ap-southeast-2"
   description = "AWS Region"
-}
-
-variable "server_type" {
-  type        = string
-  default     = "vanilla"
-  description = "Server mod type"
 }
 
 variable "application" {
@@ -93,22 +87,13 @@ variable "modpack_zip" {
   default = ""
 }
 
-variable "manifest" {
-  type = string
-  description = "Optional Manifest file"
-  default = ""
-}
-
-variable "exclude" {
-  type = string
-  description = "Client-side mods to force exclude"
-  default = ""
-}
-
-variable "include" {
-  type = string
-  description = "Missing mods to force include"
-  default = ""
+variable "additional_envs" {
+  type = list(object({
+    key = string
+    val = string
+  }))
+  description = "More environment variables to pass"
+  default = []
 }
 
 variable "ebs_volume" {

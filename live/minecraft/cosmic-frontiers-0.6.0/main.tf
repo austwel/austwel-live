@@ -10,7 +10,7 @@ module "minecraft_server" {
   root_volume_size    = "8"
   name                = "Cosmic Frontiers"
   uid                 = "cosmic-frontiers"
-  memory_mib          = 1024 * 32
+  memory_gib          = 32
   vcpu_count          = 4
 
   # Schedule Settings
@@ -20,8 +20,6 @@ module "minecraft_server" {
   }
 
   # Minecraft Settings
-  server_memory       = "30G"
-  server_type         = "curseforge"
   modpack             = "cosmic-frontiers"
 }
 

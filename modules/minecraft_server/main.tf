@@ -16,7 +16,7 @@ module "asg" {
 
   volume_size           = var.root_volume_size
 
-  memory_mib            = var.memory_mib
+  memory_mib            = var.memory_gib * 1024
   vcpu_count            = var.vcpu_count
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh.tmpl", {
@@ -28,11 +28,9 @@ module "asg" {
     modpack             = var.modpack
     cf_api_key_escaped  = replace(data.aws_secretsmanager_secret_version.cf_secret.secret_string, "$", "\\$")
     name                = var.name
-    server_memory       = var.server_memory
+    server_memory       = var.server_memory == null ? (var.memory_gib - 1) : var.server_memory
     modpack_zip         = var.modpack_zip
-    manifest            = var.manifest
-    exclude             = var.exclude
-    include             = var.include
+    additional_envs     = var.additional_envs
   }))
 }
 

@@ -10,12 +10,10 @@ module "minecraft_server" {
   root_volume_size    = "8"
   name                = "FTB OceanBlock 2"
   uid                 = "ftb-oceanblock-2"
-  memory_mib          = 16384
+  memory_gib          = 16
   vcpu_count          = 2
 
   # Minecraft Settings
-  server_memory       = "12G"
-  server_type         = "curseforge"
   modpack             = "ftb-oceanblock-2"
 }
 

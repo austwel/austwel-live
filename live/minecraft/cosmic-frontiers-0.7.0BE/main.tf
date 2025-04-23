@@ -10,8 +10,8 @@ module "minecraft_server" {
   root_volume_size    = "8"
   name                = "Cosmic Frontiers 0.7.0BE"
   uid                 = "cosmic-frontiers-0-7-0BE"
-  memory_mib          = 1024 * 32
-  vcpu_count          = 4
+  memory_gib          = 16
+  vcpu_count          = 2
 
   # Schedule Settings
   schedule            = {
@@ -20,11 +20,13 @@ module "minecraft_server" {
   }
 
   # Minecraft Settings
-  server_memory       = "30G"
-  server_type         = "curseforge"
   modpack             = "cosmic-frontiers"
 
   modpack_zip         = "https://github.com/Frontiers-PackForge/CosmicFrontiers/releases/download/0.7.0-BE1/Cosmic.Frontiers.0.7.0.-.BE1.zip"
+  additional_envs     = [{
+    key = "RCON_CMDS_STARTUP"
+    val = "gamerule naturalRegeneration true"
+  }]
 }
 
 module "dns_record" {

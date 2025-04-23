@@ -13,10 +13,8 @@ CF_API_KEY_ESCAPED="$(printf '%s' ${cf_api_key_escaped} | sed 's/\$/\$\$/g')"
 MODPACK="${modpack}"
 
 # ----------- Optional -------------
-$MODPACK_ZIP="${modpack_zip}"
-$MANIFEST="${manifest}"
-$EXCLUDE="${exclude}"
-$INCLUDE="${include}"
+MODPACK_ZIP="${modpack_zip}"
+echo "Modpack zip: $MODPACK_ZIP"
 
 # ----------- Derived Values --------------
 INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
@@ -131,7 +129,7 @@ if [[ -n "$MODPACK_ZIP" ]]; then
   mkdir -p "/data/modpack"
   MODPACK_LOC="/data/modpack/$MODPACK_FILENAME"
   rm "$MODPACK_LOC"
-  curl -L "$MODPACK_ZIP" -o "$MODPACK_LOC"
+  curl -L --retry 5 --retry-delay 5 "$MODPACK_ZIP" -o "$MODPACK_LOC"
 fi
 
 # ----------- Install Docker (Amazon Linux 2 or 2023) -------------
@@ -164,19 +162,22 @@ printf '%s\n' "services:
       - \"25565:25565\"
     environment:
       EULA: \"TRUE\"
-      MEMORY: \"$SERVER_MEMORY\"
+      MOTD: \"Life is pain\"
+      MEMORY: \"$${SERVER_MEMORY}G\"
       SERVER_NAME: \"$SERVER_NAME\"
       ALLOW_FLIGHT: \"TRUE\"
       FORCE_GAMEMODE: \"TRUE\"
       STOP_SERVER_ANNOUNCE_DELAY: 30
       DIFFICULTY: \"HARD\"
-      TYPE: AUTO_CURSEFORGE
+      TYPE: \"AUTO_CURSEFORGE\"
       CF_API_KEY: \"$CF_API_KEY_ESCAPED\"
       CF_SLUG: \"$MODPACK\"
+%{ if modpack_zip != "" && modpack_zip != null ~}
       CF_MODPACK_ZIP: \"$MODPACK_LOC\"
-      CF_MODPACK_MANIFEST: \"$MANIFEST\"
-      CF_EXCLUDE_MODS: \"$EXCLUDE\"
-      CF_FORCE_INCLUDE_MODS: \"$INCLUDE\"
+%{ endif ~}
+%{ for env in additional_envs ~}
+      ${env.key}: \"${env.val}\"
+%{ endfor ~}
     volumes:
       - \"/data:$MOUNTPOINT\"" > /opt/docker-compose.yml
 
