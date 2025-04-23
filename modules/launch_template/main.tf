@@ -85,6 +85,8 @@ resource "aws_iam_policy" "policy" {
       Action = [
         "ec2:AttachVolume",
         "ec2:DetachVolume",
+        "ec2:DescribeVolumes",
+        "ec2:DescribeInstances",
         "ec2:AssociateAddress"
       ]
       Resource = "*"

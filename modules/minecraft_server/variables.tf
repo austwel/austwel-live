@@ -4,9 +4,8 @@ variable "spot_instance" {
   description = "Should instance be spot"
 }
 
-variable "memory_mib" {
+variable "memory_gib" {
   type        = number
-  default     = 16384
   description = "Memory requirements for the instance"
 }
 
@@ -27,6 +26,12 @@ variable "user_data" {
   description = "User Data" 
 }
 
+variable "server_memory" {
+  type        = number
+  description = "Server Memory"
+  default = null
+}
+
 variable "uid" {
   type        = string
   description = "Unique server id"
@@ -36,12 +41,6 @@ variable "aws_region" {
   type        = string
   default     = "ap-southeast-2"
   description = "AWS Region"
-}
-
-variable "server_type" {
-  type        = string
-  default     = "vanilla"
-  description = "Server mod type"
 }
 
 variable "application" {
@@ -73,11 +72,34 @@ variable "root_volume_size" {
   description = "Root volume size in gigabytes"
 }
 
+variable "schedule" {
+  type = object ({
+    scale_up    = string
+    scale_down  = string
+  })
+  default = null
+  description = "Schedule to start/stop the server"
+}
+
+variable "modpack_zip" {
+  type = string
+  description = "Custom modpack zip location"
+  default = ""
+}
+
+variable "additional_envs" {
+  type = list(object({
+    key = string
+    val = string
+  }))
+  description = "More environment variables to pass"
+  default = []
+}
+
 variable "ebs_volume" {
   type        = object({
     mountpoint        = string
     device_name       = string
-    local_device_name = string
     size              = number
     type              = string
     uid               = string
@@ -87,7 +109,6 @@ variable "ebs_volume" {
   default = {
     mountpoint = "/data",
     device_name = "/dev/xvdb",
-    local_device_name = "/dev/nvme1n1",
     size = 8,
     type = "gp3",
     uid = null,

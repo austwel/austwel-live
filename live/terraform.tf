@@ -6,5 +6,6 @@ terraform {
       version = "~> 5"
       source  = "cloudflare/cloudflare"
     }
+    aws = ">= 5.0"
   }
 }

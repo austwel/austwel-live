@@ -3,25 +3,31 @@ module "minecraft_server" {
 
   # Pricing Settings
   spot_instance       = true
-  spot_price          = 0.15
+  spot_price          = 0.2
   desired_capacity    = var.start_server ? 1 : 0
 
   # Instance Settings
   root_volume_size    = "8"
-  name                = "FTB OceanBlock 2"
-  uid                 = "ftb-oceanblock-2"
-  memory_gib          = 16
-  vcpu_count          = 2
+  name                = "Cosmic Frontiers"
+  uid                 = "cosmic-frontiers"
+  memory_gib          = 32
+  vcpu_count          = 4
+
+  # Schedule Settings
+  schedule            = {
+    scale_up = "0 6 * * *" # Turn on server at 0600Z ~ 4PM AEST
+    scale_down = "0 18 * * *" # Turn off server at 1500Z ~ 4AM AEST
+  }
 
   # Minecraft Settings
-  modpack             = "ftb-oceanblock-2"
+  modpack             = "cosmic-frontiers"
 }
 
 module "dns_record" {
   source = "../../../modules/dns"
   count = var.start_server ? 1 : 0
 
-  name = "ob2.austwel.xyz"
+  name = "cf.austwel.xyz"
   ip_address = module.minecraft_server.elastic_ip[0]
 }
 

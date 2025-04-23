@@ -16,21 +16,44 @@ module "asg" {
 
   volume_size           = var.root_volume_size
 
-  memory_mib            = var.memory_mib
+  memory_mib            = var.memory_gib * 1024
   vcpu_count            = var.vcpu_count
 
   user_data = base64encode(templatefile("${path.module}/user_data.sh.tmpl", {
     ebs_volume_id       = module.volume.ebs_volume.id
     aws_region          = var.aws_region
     device_name         = var.ebs_volume.device_name
-    local_device_name   = var.ebs_volume.local_device_name
     mountpoint          = var.ebs_volume.mountpoint
     elastic_ip          = length(aws_eip.elastic_ip) > 0 ? aws_eip.elastic_ip[0].public_ip : ""
     modpack             = var.modpack
-    cf_api_key          = data.aws_secretsmanager_secret_version.cf_secret.secret_string
+    cf_api_key_escaped  = replace(data.aws_secretsmanager_secret_version.cf_secret.secret_string, "$", "\\$")
     name                = var.name
-    memory_mib          = "${var.memory_mib * 0.8}"
+    server_memory       = var.server_memory == null ? (var.memory_gib - 1) : var.server_memory
+    modpack_zip         = var.modpack_zip
+    additional_envs     = var.additional_envs
   }))
+}
+
+resource "aws_autoscaling_schedule" "scale_up" {
+  count = var.schedule != null ? 1 : 0
+
+  scheduled_action_name   = "scale_up"
+  min_size                = 0
+  max_size                = 1
+  desired_capacity        = 1
+  recurrence              = var.schedule.scale_up
+  autoscaling_group_name  = module.asg.asg.name
+}
+
+resource "aws_autoscaling_schedule" "scale_down" {
+  count = var.schedule != null ? 1 : 0
+
+  scheduled_action_name   = "scale_down"
+  min_size                = 0
+  max_size                = 1
+  desired_capacity        = 0
+  recurrence              = var.schedule.scale_down
+  autoscaling_group_name  = module.asg.asg.name
 }
 
 module "volume" {
@@ -42,18 +65,28 @@ module "volume" {
   tags = {
     "application" = "Minecraft Server Volume"
     "modpack"     = var.modpack
-    "Name"        = "${var.modpack}-data"
+    "Name"        = "${var.uid}-data"
+    "Snapshot"    = "${var.uid}-data"
   }
 }
 
+module "snapshots" {
+  source = "../dlm"
+
+  state               = var.desired_capacity > 0 ? "ENABLED" : "DISABLED"
+  volume_name         = module.volume.volume_name
+  snapshot_frequency  = 1
+  snapshot_days       = 7
+}
+
 resource "aws_eip" "elastic_ip" {
-  count = var.desired_capacity > 0 ? 1 : 0
-  domain = "vpc"
+  count   = var.desired_capacity > 0 ? 1 : 0
+  domain  = "vpc"
 
   tags = {
     "application" = "Minecraft Server Elastic IP"
     "modpack"     = var.modpack
-    "Name"        = "${var.modpack}-eip"
+    "Name"        = "${var.uid}-eip"
   }
 }
 

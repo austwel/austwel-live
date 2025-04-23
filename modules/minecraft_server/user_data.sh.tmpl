@@ -1,95 +1,187 @@
 #!/bin/bash
+echo "Starting bootstrap..."
 
-VOLUME_ID="${ebs_volume_id}"  # Injected by Terraform
-INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-DEVICE_NAME="${device_name}"
-LOCAL_DEVICE_NAME="${local_device_name}"
+# ----------- Input Variables -------------
+VOLUME_ID="${ebs_volume_id}"
+DEVICE_NAME="${device_name}"  # AWS device name (e.g., /dev/sdf)
 MOUNTPOINT="${mountpoint}"
-REGION="${aws_region}"  # Injected by Terraform
+REGION="${aws_region}"
 EIP="${elastic_ip}"
+SERVER_MEMORY="${server_memory}"
+SERVER_NAME="${name}"
+CF_API_KEY_ESCAPED="$(printf '%s' ${cf_api_key_escaped} | sed 's/\$/\$\$/g')"
+MODPACK="${modpack}"
 
-# Attach the EBS volume to the instance & check if the volume is already attached
-if ! lsblk | grep -q "nvme1n1"; then
-  # Free the volume first
-  aws ec2 detach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --region $REGION
-  aws ec2 attach-volume --volume-id $VOLUME_ID --instance-id $INSTANCE_ID --device $DEVICE_NAME --region $REGION
-  sleep 10
-  mkdir -p $MOUNTPOINT
-  mount $LOCAL_DEVICE_NAME $MOUNTPOINT || (mkfs -t ext4 $LOCAL_DEVICE_NAME && mount $LOCAL_DEVICE_NAME $MOUNTPOINT)
-fi
+# ----------- Optional -------------
+MODPACK_ZIP="${modpack_zip}"
+echo "Modpack zip: $MODPACK_ZIP"
 
-# Attach the Elastic IP
+# ----------- Derived Values --------------
+INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
+
+# Install dependencies
+yum update -y
+yum install -y jq file util-linux
+
+# ----------- Wait for Volume to Become Available -------------
+wait_for_volume() {
+  echo "Waiting for volume $VOLUME_ID to become available..."
+  while true; do
+    state=$(aws ec2 describe-volumes --volume-ids "$VOLUME_ID" --region "$REGION" --query 'Volumes[0].State' --output text)
+    if [ "$state" == "available" ]; then
+      break
+    fi
+    echo "Volume state is $state. Sleeping 5s..."
+    sleep 5
+  done
+}
+wait_for_volume
+
+# ----------- Attach the Volume -------------
+attach_volume() {
+  retries=5
+  for i in $(seq 1 $retries); do
+    echo "Attempting to attach volume (try $i)..."
+    aws ec2 attach-volume --volume-id "$VOLUME_ID" --instance-id "$INSTANCE_ID" --device "$DEVICE_NAME" --region "$REGION" && return 0
+    sleep $((i * 5))
+  done
+  echo "Failed to attach volume after $retries attempts"
+  exit 1
+}
+attach_volume
+
+# ----------- Resolve Device Name -------------
+resolve_device_name() {
+  echo "Resolving actual device name for EBS volume $VOLUME_ID..."
+
+  # Query block device mappings from AWS
+  DEVICE_NAME_AWS=$(aws ec2 describe-instances \
+    --instance-id "$INSTANCE_ID" \
+    --region "$REGION" \
+    --query "Reservations[0].Instances[0].BlockDeviceMappings[?Ebs.VolumeId=='$VOLUME_ID'].DeviceName" \
+    --output text)
+
+  if [ -z "$DEVICE_NAME_AWS" ]; then
+    echo "Could not find device mapping for volume $VOLUME_ID"
+    exit 1
+  fi
+
+  echo "AWS device name is $DEVICE_NAME_AWS"
+
+  # Clean name (e.g. /dev/sdf → sdf)
+  BASE_NAME=$(basename "$DEVICE_NAME_AWS")
+
+  # Try possible device path formats
+  for candidate in \
+      "/dev/$BASE_NAME" \
+      "/dev/xvd$${BASE_NAME: -1}" \
+      "/dev/sd$${BASE_NAME: -1}" \
+      "/dev/nvme0n1" "/dev/nvme1n1" "/dev/nvme2n1"; do
+
+    if [ -b "$candidate" ]; then
+      # Confirm device isn't already mounted somewhere else
+      mountpoint=$(findmnt -n -S "$candidate" -o TARGET)
+      if [ -z "$mountpoint" ]; then
+        echo "Found available device: $candidate"
+        LOCAL_DEVICE_NAME="$candidate"
+        return 0
+      else
+        echo "Skipping $candidate, already mounted at $mountpoint"
+      fi
+    fi
+  done
+
+  echo "Failed to resolve the actual device for volume $VOLUME_ID"
+  exit 1
+}
+resolve_device_name
+
+# ----------- Mount the Volume -------------
+mount_device() {
+  if [ -b "$LOCAL_DEVICE_NAME" ]; then
+    echo "Mounting $LOCAL_DEVICE_NAME to $MOUNTPOINT..."
+    mkdir -p "$MOUNTPOINT"
+    mount "$LOCAL_DEVICE_NAME" "$MOUNTPOINT" || {
+      echo "Formatting volume with ext4..."
+      mkfs -t ext4 "$LOCAL_DEVICE_NAME"
+      mount "$LOCAL_DEVICE_NAME" "$MOUNTPOINT"
+    }
+  else
+    echo "Device $LOCAL_DEVICE_NAME not found."
+    exit 1
+  fi
+}
+mount_device
+
+# ----------- Attach the Elastic IP -------------
 attach_eip() {
   if [ -n "$EIP" ]; then
     echo "Associating Elastic IP $EIP to instance $INSTANCE_ID"
-    aws ec2 associate-address --instance-id $INSTANCE_ID --public-ip $EIP --allow-reassociation --region $REGION
+    aws ec2 associate-address --instance-id "$INSTANCE_ID" --public-ip "$EIP" --allow-reassociation --region "$REGION"
   fi
 }
-
-# Background process to watch for Spot termination notice
-nohup bash -c '
-while true; do
-    if curl -s http://169.254.169.254/latest/meta-data/spot/termination-time | grep -q .*T.*Z; then
-        echo "Spot instance termination notice received. Detaching volume..."
-        umount $MOUNTPOINT
-        echo "Detaching volume $VOLUME_ID from instance $INSTANCE_ID"
-        aws ec2 detach-volume --volume-id $VOLUME_ID --region $REGION
-        break
-    fi
-    sleep 5
-done
-' &> /var/log/spot-instance-detach.log &
-
-# Create shutdown script
-echo '#!/bin/bash
-VOLUME_ID="${ebs_volume_id}"  # Injected by Terraform
-INSTANCE_ID=$(curl -s http://169.254.169.254/latest/meta-data/instance-id)
-MOUNTPOINT="${mountpoint}"
-REGION="${aws_region}"  # Injected by Terraform
-
-echo "Running shutdown script..."
-umount $MOUNTPOINT || echo "Volume already unmounted"
-echo "Detaching volume $VOLUME_ID from instance $INSTANCE_ID"
-aws ec2 detach-volume --volume-id $VOLUME_ID --region $REGION
-' | sudo tee /opt/detach-ebs.sh > /dev/null
-
-# Make the script executable
-sudo chmod +x /opt/detach-ebs.sh
-
-# Register the script to run on shutdown
-sudo bash -c 'echo "@reboot root /opt/detach-ebs.sh" >> /etc/crontab'
-sudo bash -c 'echo "0 0 * * * root /opt/detach-ebs.sh" >> /etc/crontab'
-
 attach_eip
 
-# Install Docker
-sudo yum update -y && sudo amazon-linux-extras install docker -y
-sudo service docker start
+# ----------- Download the modpack -------------
+if [[ -n "$MODPACK_ZIP" ]]; then
+  echo "Downloading the modpack zip file from remote source..."
+  MODPACK_FILENAME=$(echo "$MODPACK_ZIP" | sed 's:.*/::')
+  mkdir -p "/data/modpack"
+  MODPACK_LOC="/data/modpack/$MODPACK_FILENAME"
+  rm "$MODPACK_LOC"
+  curl -L --retry 5 --retry-delay 5 "$MODPACK_ZIP" -o "$MODPACK_LOC"
+fi
 
-# Install Docker Compose
-sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/bin/docker-compose
-sudo chmod +x /usr/bin/docker-compose
+# ----------- Install Docker (Amazon Linux 2 or 2023) -------------
+OS_VERSION_ID=$(grep -oP '(?<=^VERSION_ID=")[^"]+' /etc/os-release)
 
-# Configure docker compose file
-echo 'services:
+if [[ "$OS_VERSION_ID" == "2" ]]; then
+  echo "Detected Amazon Linux 2, installing Docker via amazon-linux-extras..."
+  amazon-linux-extras enable docker
+  yum install -y docker
+else
+  echo "Detected Amazon Linux 2023 or newer, installing Docker via dnf..."
+  dnf install -y docker
+fi
+
+systemctl start docker
+systemctl enable docker
+
+# ----------- Install Docker Compose -------------
+curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m) -o /usr/bin/docker-compose
+chmod +x /usr/bin/docker-compose
+
+# ----------- Configure Docker Compose File -------------
+echo "Creating docker-compose.yml..."
+printf '%s\n' "services:
   mc:
     image: itzg/minecraft-server
     tty: true
     stdin_open: true
     ports:
-      - "25565:25565"
+      - \"25565:25565\"
     environment:
-      EULA: "TRUE"
-      MEMORY: "${memory_mib}m"
-      SERVER_NAME: "${name}"
-      ALLOW_FLIGHT: "TRUE"
-      #CURSEFORGE
-      TYPE: AUTO_CURSEFORGE
-      CF_API_KEY: "${cf_api_key}"
-      CF_SLUG: "${modpack}"
+      EULA: \"TRUE\"
+      MOTD: \"Life is pain\"
+      MEMORY: \"$${SERVER_MEMORY}G\"
+      SERVER_NAME: \"$SERVER_NAME\"
+      ALLOW_FLIGHT: \"TRUE\"
+      FORCE_GAMEMODE: \"TRUE\"
+      STOP_SERVER_ANNOUNCE_DELAY: 30
+      DIFFICULTY: \"HARD\"
+      TYPE: \"AUTO_CURSEFORGE\"
+      CF_API_KEY: \"$CF_API_KEY_ESCAPED\"
+      CF_SLUG: \"$MODPACK\"
+%{ if modpack_zip != "" && modpack_zip != null ~}
+      CF_MODPACK_ZIP: \"$MODPACK_LOC\"
+%{ endif ~}
+%{ for env in additional_envs ~}
+      ${env.key}: \"${env.val}\"
+%{ endfor ~}
     volumes:
-      - /data:/data
-' | sudo tee /opt/docker-compose.yml > /dev/null
+      - \"/data:$MOUNTPOINT\"" > /opt/docker-compose.yml
 
-# Run the server
-sudo docker-compose -f /opt/docker-compose.yml up
+# ----------- Run Minecraft Server -------------
+docker-compose -f /opt/docker-compose.yml up -d
+
+echo "Bootstrap complete."
