@@ -113,6 +113,19 @@ mount_device() {
 }
 mount_device
 
+# ----------- Download the modpack -------------
+download_modpack() {
+  if [[ -n "$MODPACK_ZIP" ]]; then
+    echo "Downloading the modpack zip file from remote source..."
+    MODPACK_FILENAME=$(echo "$MODPACK_ZIP" | sed 's:.*/::')
+    if [ -f "/data/modpack/$MODPACK_FILENAME" ]; then
+      return 0
+    fi
+    mkdir -p "/data/modpack"
+    curl -L --retry 5 --retry-delay 5 "$MODPACK_ZIP" -o "/data/modpack/$MODPACK_FILENAME"
+  fi
+}
+
 # ----------- Attach the Elastic IP -------------
 attach_eip() {
   if [ -n "$EIP" ]; then
@@ -121,16 +134,6 @@ attach_eip() {
   fi
 }
 attach_eip
-
-# ----------- Download the modpack -------------
-if [[ -n "$MODPACK_ZIP" ]]; then
-  echo "Downloading the modpack zip file from remote source..."
-  MODPACK_FILENAME=$(echo "$MODPACK_ZIP" | sed 's:.*/::')
-  mkdir -p "/data/modpack"
-  MODPACK_LOC="/data/modpack/$MODPACK_FILENAME"
-  rm "$MODPACK_LOC"
-  curl -L --retry 5 --retry-delay 5 "$MODPACK_ZIP" -o "$MODPACK_LOC"
-fi
 
 # ----------- Install Docker (Amazon Linux 2 or 2023) -------------
 OS_VERSION_ID=$(grep -oP '(?<=^VERSION_ID=")[^"]+' /etc/os-release)
