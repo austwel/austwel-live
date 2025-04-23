@@ -14,19 +14,26 @@ module "launch_template" {
 }
 
 resource "aws_autoscaling_group" "autoscaling_group" {
-  name                = "${var.uid}-asg-${module.launch_template.launch_template_version}"
+  name                = "${var.uid}-asg"
   availability_zones  = ["ap-southeast-2a"]
   desired_capacity    = var.desired_capacity
   max_size            = var.max_size
   min_size            = var.min_size
 
-  force_delete        = true
+  force_delete        = false
+
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [
+      launch_template[0].version
+     ]
+  }
 
   mixed_instances_policy {
     instances_distribution {
       on_demand_base_capacity                   = var.od_base_capacity
       on_demand_percentage_above_base_capacity  = var.od_percent_above_base
-      spot_allocation_strategy                  = "price-capacity-optimized"
+      spot_allocation_strategy                  = "capacity-optimized"
       spot_max_price = var.spot_price
     }
 

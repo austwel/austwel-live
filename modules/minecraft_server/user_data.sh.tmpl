@@ -113,6 +113,22 @@ mount_device() {
 }
 mount_device
 
+monitor_spot_termination() {
+  TERMINATION_TIME_URL="http://169.254.169.254/latest/meta-data/spot/termination-time"
+
+  echo "Starting spot instance termination monitor..."
+
+  while true; do
+    if curl -s --fail "$TERMINATION_TIME_URL" > /dev/null; then
+      echo "Termination notice received! Gracefully stopping Minecraft server..."
+      docker-compose -f /opt/docker-compose.yml down
+
+      exit 0
+    fi
+    sleep 5
+  done
+}
+
 # ----------- Download the modpack -------------
 download_modpack() {
   if [[ -n "$MODPACK_ZIP" ]]; then
@@ -186,5 +202,7 @@ printf '%s\n' "services:
 
 # ----------- Run Minecraft Server -------------
 docker-compose -f /opt/docker-compose.yml up -d
+
+monitor_spot_termination &
 
 echo "Bootstrap complete."
