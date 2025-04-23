@@ -141,6 +141,7 @@ download_modpack() {
     curl -L --retry 5 --retry-delay 5 "$MODPACK_ZIP" -o "/data/modpack/$MODPACK_FILENAME"
   fi
 }
+download_modpack
 
 # ----------- Attach the Elastic IP -------------
 attach_eip() {
@@ -192,7 +193,7 @@ printf '%s\n' "services:
       CF_API_KEY: \"$CF_API_KEY_ESCAPED\"
       CF_SLUG: \"$MODPACK\"
 %{ if modpack_zip != "" && modpack_zip != null ~}
-      CF_MODPACK_ZIP: \"$MODPACK_LOC\"
+      CF_MODPACK_ZIP: \"/data/modpack/$${MODPACK_FILENAME}\"
 %{ endif ~}
 %{ for env in additional_envs ~}
       ${env.key}: \"${env.val}\"
