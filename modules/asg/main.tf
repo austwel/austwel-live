@@ -25,6 +25,7 @@ resource "aws_autoscaling_group" "autoscaling_group" {
   lifecycle {
     create_before_destroy = true
     ignore_changes = [
+      desired_capacity,
       launch_template[0].version
      ]
   }

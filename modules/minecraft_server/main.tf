@@ -35,7 +35,7 @@ module "asg" {
 }
 
 resource "aws_autoscaling_schedule" "scale_up" {
-  count = var.schedule != null ? 1 : 0
+  count = var.schedule != null && var.desired_capacity > 0 ? 1 : 0
 
   scheduled_action_name   = "scale_up"
   min_size                = 0
@@ -46,7 +46,7 @@ resource "aws_autoscaling_schedule" "scale_up" {
 }
 
 resource "aws_autoscaling_schedule" "scale_down" {
-  count = var.schedule != null ? 1 : 0
+  count = var.schedule != null && var.desired_capacity > 0 ? 1 : 0
 
   scheduled_action_name   = "scale_down"
   min_size                = 0
