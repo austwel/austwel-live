@@ -1,12 +1,19 @@
-variable "zone_id" {
+variable "content" {
   type        = string
-  default     = "ffb5c8391f2f1980fff249572a441e6b"
-  description = "Zone ID"
+  description = "DNS address"
+  default = "default.austwel.xyz"
 }
 
-variable "ip_address" {
+variable "zone_id" {
   type        = string
-  description = "DNS Ip address"
+  description = "Zone ID"
+  default     = "ffb5c8391f2f1980fff249572a441e6b" 
+}
+
+variable "domain" {
+  type        = string
+  description = "Domain Name"
+  default     = "austwel.xyz" 
 }
 
 variable "name" {
@@ -22,6 +29,12 @@ variable "type" {
 
 variable "proxied" {
   type        = bool
-  default     = false
+  default     = true
   description = "Should record use cf proxy"
+}
+
+variable "cname_forward" {
+  type        = string
+  default     = null
+  description = "Address to redirect to"
 }

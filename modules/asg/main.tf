@@ -20,6 +20,8 @@ resource "aws_autoscaling_group" "autoscaling_group" {
   max_size            = var.max_size
   min_size            = var.min_size
 
+  wait_for_capacity_timeout = var.wait_for_capacity_timeout
+
   force_delete        = false
 
   lifecycle {
@@ -45,12 +47,4 @@ resource "aws_autoscaling_group" "autoscaling_group" {
       }
     }
   }
-}
-
-resource "aws_autoscaling_lifecycle_hook" "detach_ebs_hook" {
-  name                    = "detach-ebs"
-  autoscaling_group_name  = aws_autoscaling_group.autoscaling_group.name
-  lifecycle_transition    = "autoscaling:EC2_INSTANCE_TERMINATING"
-  heartbeat_timeout       = 300
-  default_result          = "CONTINUE"
 }

@@ -9,8 +9,12 @@ REGION="${aws_region}"
 EIP="${elastic_ip}"
 SERVER_MEMORY="${server_memory}"
 SERVER_NAME="${name}"
-CF_API_KEY_ESCAPED="$(printf '%s' ${cf_api_key_escaped} | sed 's/\$/\$\$/g')"
+CF_API_KEY="$(printf '%s' ${cf_api_key} | sed 's/\$/\$\$/g')"
 MODPACK="${modpack}"
+JAVA_VERSION="${java_version}"
+JVM_OPTS="${jvm_opts}"
+JVM_XX_OPTS="${jvm_xx_opts}"
+JVM_DD_OPTS="${jvm_dd_opts}"
 
 # ----------- Optional -------------
 MODPACK_ZIP="${modpack_zip}"
@@ -121,6 +125,8 @@ monitor_spot_termination() {
   while true; do
     if curl -s --fail "$TERMINATION_TIME_URL" > /dev/null; then
       echo "Termination notice received! Gracefully stopping Minecraft server..."
+      docker exec mc-opt-1 rcon-cli stop
+      sleep 30
       docker-compose -f /opt/docker-compose.yml down
 
       exit 0
@@ -175,14 +181,18 @@ chmod +x /usr/bin/docker-compose
 echo "Creating docker-compose.yml..."
 printf '%s\n' "services:
   mc:
-    image: itzg/minecraft-server
+    image: itzg/minecraft-server:$JAVA_VERSION
     tty: true
     stdin_open: true
     ports:
       - \"25565:25565\"
+    stop_grace_period: 90s
     environment:
+      JVM_OPTS: \"$JVM_OPTS\"
+      JVM_XX_OPTS: \"$JVM_XX_OPTS\"
+      JVM_DD_OPTS: \"$JVM_DD_OPTS\"
       EULA: \"TRUE\"
-      MOTD: \"Life is pain\"
+      MOTD: \"$SERVER_NAME\"
       MEMORY: \"$${SERVER_MEMORY}G\"
       SERVER_NAME: \"$SERVER_NAME\"
       ALLOW_FLIGHT: \"TRUE\"
@@ -190,7 +200,7 @@ printf '%s\n' "services:
       STOP_SERVER_ANNOUNCE_DELAY: 30
       DIFFICULTY: \"HARD\"
       TYPE: \"AUTO_CURSEFORGE\"
-      CF_API_KEY: \"$CF_API_KEY_ESCAPED\"
+      CF_API_KEY: \"$CF_API_KEY\"
       CF_SLUG: \"$MODPACK\"
 %{ if modpack_zip != "" && modpack_zip != null ~}
       CF_MODPACK_ZIP: \"/data/modpack/$${MODPACK_FILENAME}\"

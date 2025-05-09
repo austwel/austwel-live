@@ -6,8 +6,9 @@ module "asg" {
   name                  = var.name
   uid                   = var.uid
 
+  wait_for_capacity_timeout = "10m"
   desired_capacity      = var.desired_capacity
-  max_size              = 1
+  max_size              = 2
   min_size              = 0
 
   od_base_capacity      = var.spot_instance ? 0 : 1
@@ -26,34 +27,38 @@ module "asg" {
     mountpoint          = var.ebs_volume.mountpoint
     elastic_ip          = length(aws_eip.elastic_ip) > 0 ? aws_eip.elastic_ip[0].public_ip : ""
     modpack             = var.modpack
-    cf_api_key_escaped  = replace(data.aws_secretsmanager_secret_version.cf_secret.secret_string, "$", "\\$")
+    cf_api_key          = file("~/.curseforge/api")
     name                = var.name
-    server_memory       = var.server_memory == null ? (var.memory_gib - 1) : var.server_memory
+    server_memory       = var.server_memory == null ? (var.memory_gib * 6/8) : var.server_memory
     modpack_zip         = var.modpack_zip
     additional_envs     = var.additional_envs
+    java_version        = var.java_version
+    jvm_opts            = var.jvm_opts.jvm_opts
+    jvm_xx_opts         = var.jvm_opts.jvm_xx_opts
+    jvm_dd_opts         = var.jvm_opts.jvm_dd_opts
   }))
 }
 
 resource "aws_autoscaling_schedule" "scale_up" {
-  count = var.schedule != null && var.desired_capacity > 0 ? 1 : 0
+  count = var.schedule == null || var.desired_capacity == 0 ? 0 : var.schedule.scale_up == null ? 0 : 1
 
   scheduled_action_name   = "scale_up"
   min_size                = 0
-  max_size                = 1
+  max_size                = 2
   desired_capacity        = 1
   recurrence              = var.schedule.scale_up
-  autoscaling_group_name  = module.asg.asg.name
+  autoscaling_group_name  = module.asg.asg_name
 }
 
 resource "aws_autoscaling_schedule" "scale_down" {
-  count = var.schedule != null && var.desired_capacity > 0 ? 1 : 0
+  count = var.schedule == null || var.desired_capacity == 0 ? 0 : var.schedule.scale_down == null ? 0 : 1
 
   scheduled_action_name   = "scale_down"
   min_size                = 0
-  max_size                = 1
+  max_size                = 2
   desired_capacity        = 0
   recurrence              = var.schedule.scale_down
-  autoscaling_group_name  = module.asg.asg.name
+  autoscaling_group_name  = module.asg.asg_name
 }
 
 module "volume" {
@@ -88,12 +93,4 @@ resource "aws_eip" "elastic_ip" {
     "modpack"     = var.modpack
     "Name"        = "${var.uid}-eip"
   }
-}
-
-data "aws_secretsmanager_secret" "cf_secrets" {
-  arn = "arn:aws:secretsmanager:ap-southeast-2:017820703778:secret:curseforge_api_key-zKpLdI"
-}
-
-data "aws_secretsmanager_secret_version" "cf_secret" {
-  secret_id = data.aws_secretsmanager_secret.cf_secrets.id
 }

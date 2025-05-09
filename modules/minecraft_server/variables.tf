@@ -26,6 +26,26 @@ variable "user_data" {
   description = "User Data" 
 }
 
+variable "java_version" {
+  type        = string
+  default     = "latest"
+  description = "Java version to use"
+}
+
+variable "jvm_opts" {
+  type        = object({
+    jvm_opts    = string
+    jvm_xx_opts = string
+    jvm_dd_opts = string
+  })
+  default = {
+    jvm_opts    = ""
+    jvm_xx_opts = ""
+    jvm_dd_opts = ""
+  }
+  description = "Java (and -XX -D opts) for the container"
+}
+
 variable "server_memory" {
   type        = number
   description = "Server Memory"

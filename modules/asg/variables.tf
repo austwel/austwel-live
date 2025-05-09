@@ -9,6 +9,12 @@ variable "availability_zone" {
   default     = "ap-southeast-2a"
 }
 
+variable "wait_for_capacity_timeout" {
+  type        = string
+  description = "Wait instance for ASG to make an instance"
+  default     = "10m"
+}
+
 variable "memory_mib" {
   type        = number
   description = "Memory requirements for the instance"
