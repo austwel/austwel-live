@@ -4,9 +4,16 @@ variable "spot_instance" {
   description = "Should instance be spot"
 }
 
+variable "instance_type" {
+  type        = string
+  default     = "t3a.large"
+  description = "Acceptable instance type"
+}
+
 variable "memory_gib" {
   type        = number
   description = "Memory requirements for the instance"
+  default     = 16 * 1024
 }
 
 variable "vcpu_count" {
@@ -129,7 +136,7 @@ variable "ebs_volume" {
   default = {
     mountpoint = "/data",
     device_name = "/dev/xvdb",
-    size = 8,
+    size = 16,
     type = "gp3",
     uid = null,
     gid = null,

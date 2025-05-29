@@ -1,4 +1,5 @@
 import json
+import boto3
 import os
 import urllib.request
 
@@ -9,21 +10,39 @@ def lambda_handler(event, context):
 
     if isinstance(sns_message, str):
         sns_message = json.loads(sns_message)
+        
+    instance_id = sns_message["EC2InstanceId"]
+    
+    if instance_id is not None and instance_id != "":
+      ec2 = boto3.client('ec2')
+      response = ec2.describe_instances(InstanceIds=[instance_id])
+      instance_type = response['Reservations'][0]['Instances'][0]['InstanceType']
 
     payload = {
       "embeds": [{
         "title": sns_message["AutoScalingGroupName"],
         "description": sns_message["Event"],
-        "fields": [
+        "fields": ([
           {
             "name": "Instance",
             "value": sns_message["EC2InstanceId"],
-            "inline": False
+            "inline": True
           },
+          {
+            "name": "Instance Type",
+            "value": instance_type,
+            "inline": True
+          }
+        ] if instance_id is not None and instance_id != "" else []) + [
           {
             "name": "Description",
             "value": sns_message["Description"],
-            "inline": True
+            "inline": False
+          },
+          {
+            "name": "Cause",
+            "value": sns_message["Cause"],
+            "inline": False
           }
         ]
       }]
@@ -38,6 +57,7 @@ def lambda_handler(event, context):
                 'statusCode': response.getcode(),
                 'body': response.read().decode('utf-8')
             }
+            
     except Exception as e:
         return {
             'statusCode': 500,

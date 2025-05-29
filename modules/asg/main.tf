@@ -11,6 +11,7 @@ module "launch_template" {
 
   memory_mib = var.memory_mib
   vcpu_count = var.vcpu_count
+  instance_type  = var.instance_type
 }
 
 resource "aws_autoscaling_group" "autoscaling_group" {
@@ -32,19 +33,10 @@ resource "aws_autoscaling_group" "autoscaling_group" {
      ]
   }
 
-  mixed_instances_policy {
-    instances_distribution {
-      on_demand_base_capacity                   = var.od_base_capacity
-      on_demand_percentage_above_base_capacity  = var.od_percent_above_base
-      spot_allocation_strategy                  = "capacity-optimized"
-      spot_max_price = var.spot_price
-    }
+  health_check_grace_period = var.health_check_grace_period
 
-    launch_template {
-      launch_template_specification {
-        version = "$Latest"
-        launch_template_id = module.launch_template.launch_template_id
-      }
-    }
+  launch_template {
+    version = "$Latest"
+    id = module.launch_template.launch_template_id
   }
 }

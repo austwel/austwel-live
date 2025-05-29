@@ -9,7 +9,7 @@ REGION="${aws_region}"
 EIP="${elastic_ip}"
 SERVER_MEMORY="${server_memory}"
 SERVER_NAME="${name}"
-CF_API_KEY="$(printf '%s' ${cf_api_key} | sed 's/\$/\$\$/g')"
+CF_API_KEY="$(printf '%s' '${cf_api_key}' | sed 's/\$/\$\$/g')"
 MODPACK="${modpack}"
 JAVA_VERSION="${java_version}"
 JVM_OPTS="${jvm_opts}"
@@ -80,7 +80,7 @@ resolve_device_name() {
       "/dev/$BASE_NAME" \
       "/dev/xvd$${BASE_NAME: -1}" \
       "/dev/sd$${BASE_NAME: -1}" \
-      "/dev/nvme0n1" "/dev/nvme1n1" "/dev/nvme2n1"; do
+      "/dev/nvme1n1" "/dev/nvme2n1"; do
 
     if [ -b "$candidate" ]; then
       # Confirm device isn't already mounted somewhere else

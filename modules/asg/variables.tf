@@ -18,11 +18,19 @@ variable "wait_for_capacity_timeout" {
 variable "memory_mib" {
   type        = number
   description = "Memory requirements for the instance"
+  default     = 16 * 1024
 }
 
 variable "vcpu_count" {
   type        = number
   description = "CPU requirements for the instance"
+  default     = 2
+}
+
+variable "instance_type" {
+  type        = string
+  default     = "t3a.large"
+  description = "Acceptable instance type"
 }
 
 variable "ami_id" {
@@ -80,6 +88,12 @@ variable  "od_percent_above_base" {
   default     = 0
   description = "On Demand Percentage Above Base Capacity"
 }
+
+variable "health_check_grace_period" {
+  type        = number
+  default     = 300
+  description = "Health check grace period"
+} 
 
 variable "spot_price" {
   type        = number
