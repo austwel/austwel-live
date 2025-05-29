@@ -11,38 +11,32 @@ module "launch_template" {
 
   memory_mib = var.memory_mib
   vcpu_count = var.vcpu_count
+  instance_type  = var.instance_type
 }
 
 resource "aws_autoscaling_group" "autoscaling_group" {
-  name                = "${var.uid}-asg-${module.launch_template.launch_template_version}"
+  name                = "${var.uid}-asg"
   availability_zones  = ["ap-southeast-2a"]
   desired_capacity    = var.desired_capacity
   max_size            = var.max_size
   min_size            = var.min_size
 
-  force_delete        = true
+  wait_for_capacity_timeout = var.wait_for_capacity_timeout
 
-  mixed_instances_policy {
-    instances_distribution {
-      on_demand_base_capacity                   = var.od_base_capacity
-      on_demand_percentage_above_base_capacity  = var.od_percent_above_base
-      spot_allocation_strategy                  = "price-capacity-optimized"
-      spot_max_price = var.spot_price
-    }
+  force_delete        = false
 
-    launch_template {
-      launch_template_specification {
-        version = "$Latest"
-        launch_template_id = module.launch_template.launch_template_id
-      }
-    }
+  lifecycle {
+    create_before_destroy = true
+    ignore_changes = [
+      desired_capacity,
+      launch_template[0].version
+     ]
   }
-}
 
-resource "aws_autoscaling_lifecycle_hook" "detach_ebs_hook" {
-  name                    = "detach-ebs"
-  autoscaling_group_name  = aws_autoscaling_group.autoscaling_group.name
-  lifecycle_transition    = "autoscaling:EC2_INSTANCE_TERMINATING"
-  heartbeat_timeout       = 300
-  default_result          = "CONTINUE"
+  health_check_grace_period = var.health_check_grace_period
+
+  launch_template {
+    version = "$Latest"
+    id = module.launch_template.launch_template_id
+  }
 }

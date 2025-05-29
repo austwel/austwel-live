@@ -9,8 +9,12 @@ REGION="${aws_region}"
 EIP="${elastic_ip}"
 SERVER_MEMORY="${server_memory}"
 SERVER_NAME="${name}"
-CF_API_KEY_ESCAPED="$(printf '%s' ${cf_api_key_escaped} | sed 's/\$/\$\$/g')"
+CF_API_KEY="$(printf '%s' '${cf_api_key}' | sed 's/\$/\$\$/g')"
 MODPACK="${modpack}"
+JAVA_VERSION="${java_version}"
+JVM_OPTS="${jvm_opts}"
+JVM_XX_OPTS="${jvm_xx_opts}"
+JVM_DD_OPTS="${jvm_dd_opts}"
 
 # ----------- Optional -------------
 MODPACK_ZIP="${modpack_zip}"
@@ -76,7 +80,7 @@ resolve_device_name() {
       "/dev/$BASE_NAME" \
       "/dev/xvd$${BASE_NAME: -1}" \
       "/dev/sd$${BASE_NAME: -1}" \
-      "/dev/nvme0n1" "/dev/nvme1n1" "/dev/nvme2n1"; do
+      "/dev/nvme1n1" "/dev/nvme2n1"; do
 
     if [ -b "$candidate" ]; then
       # Confirm device isn't already mounted somewhere else
@@ -113,6 +117,38 @@ mount_device() {
 }
 mount_device
 
+monitor_spot_termination() {
+  TERMINATION_TIME_URL="http://169.254.169.254/latest/meta-data/spot/termination-time"
+
+  echo "Starting spot instance termination monitor..."
+
+  while true; do
+    if curl -s --fail "$TERMINATION_TIME_URL" > /dev/null; then
+      echo "Termination notice received! Gracefully stopping Minecraft server..."
+      docker exec mc-opt-1 rcon-cli stop
+      sleep 30
+      docker-compose -f /opt/docker-compose.yml down
+
+      exit 0
+    fi
+    sleep 5
+  done
+}
+
+# ----------- Download the modpack -------------
+download_modpack() {
+  if [[ -n "$MODPACK_ZIP" ]]; then
+    echo "Downloading the modpack zip file from remote source..."
+    MODPACK_FILENAME=$(echo "$MODPACK_ZIP" | sed 's:.*/::')
+    if [ -f "/data/modpack/$MODPACK_FILENAME" ]; then
+      return 0
+    fi
+    mkdir -p "/data/modpack"
+    curl -L --retry 5 --retry-delay 5 "$MODPACK_ZIP" -o "/data/modpack/$MODPACK_FILENAME"
+  fi
+}
+download_modpack
+
 # ----------- Attach the Elastic IP -------------
 attach_eip() {
   if [ -n "$EIP" ]; then
@@ -121,16 +157,6 @@ attach_eip() {
   fi
 }
 attach_eip
-
-# ----------- Download the modpack -------------
-if [[ -n "$MODPACK_ZIP" ]]; then
-  echo "Downloading the modpack zip file from remote source..."
-  MODPACK_FILENAME=$(echo "$MODPACK_ZIP" | sed 's:.*/::')
-  mkdir -p "/data/modpack"
-  MODPACK_LOC="/data/modpack/$MODPACK_FILENAME"
-  rm "$MODPACK_LOC"
-  curl -L --retry 5 --retry-delay 5 "$MODPACK_ZIP" -o "$MODPACK_LOC"
-fi
 
 # ----------- Install Docker (Amazon Linux 2 or 2023) -------------
 OS_VERSION_ID=$(grep -oP '(?<=^VERSION_ID=")[^"]+' /etc/os-release)
@@ -155,14 +181,18 @@ chmod +x /usr/bin/docker-compose
 echo "Creating docker-compose.yml..."
 printf '%s\n' "services:
   mc:
-    image: itzg/minecraft-server
+    image: itzg/minecraft-server:$JAVA_VERSION
     tty: true
     stdin_open: true
     ports:
       - \"25565:25565\"
+    stop_grace_period: 90s
     environment:
+      JVM_OPTS: \"$JVM_OPTS\"
+      JVM_XX_OPTS: \"$JVM_XX_OPTS\"
+      JVM_DD_OPTS: \"$JVM_DD_OPTS\"
       EULA: \"TRUE\"
-      MOTD: \"Life is pain\"
+      MOTD: \"$SERVER_NAME\"
       MEMORY: \"$${SERVER_MEMORY}G\"
       SERVER_NAME: \"$SERVER_NAME\"
       ALLOW_FLIGHT: \"TRUE\"
@@ -170,10 +200,10 @@ printf '%s\n' "services:
       STOP_SERVER_ANNOUNCE_DELAY: 30
       DIFFICULTY: \"HARD\"
       TYPE: \"AUTO_CURSEFORGE\"
-      CF_API_KEY: \"$CF_API_KEY_ESCAPED\"
+      CF_API_KEY: \"$CF_API_KEY\"
       CF_SLUG: \"$MODPACK\"
 %{ if modpack_zip != "" && modpack_zip != null ~}
-      CF_MODPACK_ZIP: \"$MODPACK_LOC\"
+      CF_MODPACK_ZIP: \"/data/modpack/$${MODPACK_FILENAME}\"
 %{ endif ~}
 %{ for env in additional_envs ~}
       ${env.key}: \"${env.val}\"
@@ -183,5 +213,7 @@ printf '%s\n' "services:
 
 # ----------- Run Minecraft Server -------------
 docker-compose -f /opt/docker-compose.yml up -d
+
+monitor_spot_termination &
 
 echo "Bootstrap complete."

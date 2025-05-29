@@ -11,15 +11,12 @@ resource "aws_launch_template" "launch_template" {
     name = aws_iam_instance_profile.instance_profile.name
   }
 
-  instance_requirements {
-    spot_max_price_percentage_over_lowest_price = var.spot_max_price_percent
-    memory_mib {
-      min = var.memory_mib
-      max = var.memory_mib
-    }
-    vcpu_count {
-      min = var.vcpu_count
-      max = var.vcpu_count
+  instance_type = var.instance_type
+
+  instance_market_options {
+    market_type = "spot"
+    spot_options {
+      spot_instance_type = "one-time"
     }
   }
 

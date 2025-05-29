@@ -10,44 +10,69 @@ module "minecraft_server" {
   root_volume_size    = "8"
   name                = "Cosmic Frontiers 0.7.0BE"
   uid                 = "cosmic-frontiers-0-7-0BE"
-  memory_gib          = 16
-  vcpu_count          = 2
+  instance_type       = "t3a.xlarge"
 
   # Schedule Settings
-  schedule            = {
-    scale_up = "0 6 * * *" # Turn on server at 0600Z ~ 4PM AEST
-    scale_down = "0 18 * * *" # Turn off server at 1500Z ~ 4AM AEST
+  schedule            = {     
+#    scale_up   = "0 16 * * *"
+    scale_up   = null
+    scale_down = "0 2 * * 1,2,3,4,5"
+  }
+
+  # EBS Settings
+  ebs_volume = {
+    mountpoint = "/data",
+    device_name = "/dev/xvdb",
+    size = 16,
+    type = "gp3",
+    uid = null,
+    gid = null,
+    mode = null
   }
 
   # Minecraft Settings
-  modpack             = "cosmic-frontiers"
+  java_version        = "java21-graalvm"
+  jvm_opts            = {
+    jvm_opts = ""
+    jvm_xx_opts = "-XX:+UnlockExperimentalVMOptions -XX:+UnlockDiagnosticVMOptions -XX:+AlwaysActAsServerClassMachine -XX:+AlwaysPreTouch -XX:+DisableExplicitGC -XX:+UseNUMA -XX:NmethodSweepActivity=1 -XX:ReservedCodeCacheSize=400M -XX:NonNMethodCodeHeapSize=12M -XX:ProfiledCodeHeapSize=194M -XX:NonProfiledCodeHeapSize=194M -XX:-DontCompileHugeMethods -XX:MaxNodeLimit=240000 -XX:NodeLimitFudgeFactor=8000 -XX:+UseVectorCmov -XX:+PerfDisableSharedMem -XX:+UseFastUnorderedTimeStamps -XX:+UseCriticalJavaThreadPriority -XX:ThreadPriorityPolicy=1 -XX:AllocatePrefetchStyle=3 -XX:ConcGCThreads=10 -XX:+EagerJVMCI -XX:+UseG1GC -XX:MaxGCPauseMillis=130 -XX:G1NewSizePercent=28 -XX:G1HeapRegionSize=16M -XX:G1ReservePercent=20 -XX:G1MixedGCCountTarget=3 -XX:InitiatingHeapOccupancyPercent=10 -XX:G1MixedGCLiveThresholdPercent=90 -XX:G1RSetUpdatingPauseTimePercent=0 -XX:SurvivorRatio=32 -XX:MaxTenuringThreshold=1 -XX:G1SATBBufferEnqueueingThresholdPercent=30 -XX:G1ConcMarkStepDurationMillis=5"
+    jvm_dd_opts = "graal.TuneInlinerExploration=1 graal.CompilerConfiguration=enterprise graal.LoopRotation=true"
+  }
 
+  modpack             = "cosmic-frontiers"
   modpack_zip         = "https://github.com/Frontiers-PackForge/CosmicFrontiers/releases/download/0.7.0-BE1/Cosmic.Frontiers.0.7.0.-.BE1.zip"
-  additional_envs     = [{
-    key = "RCON_CMDS_STARTUP"
-    val = "gamerule naturalRegeneration true"
-  }]
+  additional_envs     = [
+    {key = "RCON_CMDS_STARTUP", val = "gamerule naturalRegeneration true"},
+    {key = "CF_EXCLUDE_MODS", val = "875744,854213,250398,231275,511770,908741,844662,915902,363363,367706,1113794,686911,525447,238747,581495,631278,1163800,334853,535489,306549"}]
 }
 
 module "dns_record" {
   source = "../../../modules/dns"
-  count = var.start_server ? 1 : 0
 
-  name = "cf.austwel.xyz"
-  ip_address = module.minecraft_server.elastic_ip[0]
+  name = "cf"
+  content = module.minecraft_server.elastic_ip[0]
+  proxied = false
 }
 
 module "main_dns_record" {
   source = "../../../modules/dns"
   count = var.start_server && var.main_server ? 1 : 0
 
-  name = "mc.austwel.xyz"
-  ip_address = module.minecraft_server.elastic_ip[0]
+  name = "mc"
+  content = module.minecraft_server.elastic_ip[0]
+  proxied = false
 }
 
 output "ip_address" {
-  value = module.minecraft_server[*].elastic_ip
+  value = module.minecraft_server.elastic_ip
   description = "Elastic IP Address"
+}
+
+output "dns_name" {
+  value = module.dns_record.name
+}
+
+output "asg_name" {
+  value = module.minecraft_server.asg_name
 }
 
 variable "start_server" {

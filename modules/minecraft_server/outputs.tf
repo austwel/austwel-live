@@ -1,5 +1,5 @@
-output "asg" {
-  value = module.asg
+output "asg_name" {
+  value = module.asg.asg_name
   description = "Minecraft Server autoscaling group"
 }
 

@@ -21,21 +21,27 @@ module "dns_record" {
   source = "../../../modules/dns"
   count = var.start_server ? 1 : 0
 
-  name = "ob2.austwel.xyz"
-  ip_address = module.minecraft_server.elastic_ip[0]
+  name = "ob2"
+  content = module.minecraft_server.elastic_ip[0]
+  proxied = false
 }
 
 module "main_dns_record" {
   source = "../../../modules/dns"
   count = var.start_server && var.main_server ? 1 : 0
 
-  name = "mc.austwel.xyz"
-  ip_address = module.minecraft_server.elastic_ip[0]
+  name = "mc"
+  content = module.minecraft_server.elastic_ip[0]
+  proxied = false
 }
 
 output "ip_address" {
-  value = module.minecraft_server[*].elastic_ip
+  value = module.minecraft_server.elastic_ip
   description = "Elastic IP Address"
+}
+
+output "asg_name" {
+  value = module.minecraft_server.asg_name
 }
 
 variable "start_server" {

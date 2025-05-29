@@ -4,9 +4,16 @@ variable "spot_instance" {
   description = "Should instance be spot"
 }
 
+variable "instance_type" {
+  type        = string
+  default     = "t3a.large"
+  description = "Acceptable instance type"
+}
+
 variable "memory_gib" {
   type        = number
   description = "Memory requirements for the instance"
+  default     = 16 * 1024
 }
 
 variable "vcpu_count" {
@@ -24,6 +31,26 @@ variable "user_data" {
   type        = string
   default     = ""
   description = "User Data" 
+}
+
+variable "java_version" {
+  type        = string
+  default     = "latest"
+  description = "Java version to use"
+}
+
+variable "jvm_opts" {
+  type        = object({
+    jvm_opts    = string
+    jvm_xx_opts = string
+    jvm_dd_opts = string
+  })
+  default = {
+    jvm_opts    = ""
+    jvm_xx_opts = ""
+    jvm_dd_opts = ""
+  }
+  description = "Java (and -XX -D opts) for the container"
 }
 
 variable "server_memory" {
@@ -109,7 +136,7 @@ variable "ebs_volume" {
   default = {
     mountpoint = "/data",
     device_name = "/dev/xvdb",
-    size = 8,
+    size = 16,
     type = "gp3",
     uid = null,
     gid = null,
