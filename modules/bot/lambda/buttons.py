@@ -60,7 +60,15 @@ def lambda_handler(event, context):
     status = "Running" if desired_capacity > 0 else "Stopped"
     
     print(f'Scaling to {desired_capacity}')
-    response = requests.post(f"{API_BASE_URL}/scale-{ASG_NAME}", json={"desired_capacity": desired_capacity})
-
+    autoscaling = boto3.client('autoscaling')
+    try:
+      response = autoscaling.set_desired_capacity(
+        AutoScalingGroupName=ASG_NAME,
+        DesiredCapacity=desired_capacity,
+        HonorCooldown=True
+      )
+    except Exception as e:
+      ...
+    
     print('Closing the interaction')
     return json.dumps({"type":6})
