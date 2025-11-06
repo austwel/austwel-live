@@ -41,6 +41,8 @@ wait_for_volume() {
 }
 wait_for_volume
 
+sleep 10
+
 # ----------- Attach the Volume -------------
 attach_volume() {
   retries=5
@@ -53,6 +55,8 @@ attach_volume() {
   exit 1
 }
 attach_volume
+
+sleep 10
 
 # ----------- Resolve Device Name -------------
 resolve_device_name() {

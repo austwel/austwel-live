@@ -8,8 +8,8 @@ module "minecraft_server" {
 
   # Instance Settings
   root_volume_size    = "8"
-  name                = "Cosmic Frontiers 0.7.0BE"
-  uid                 = "cosmic-frontiers-0-7-0BE"
+  name                = "Cosmic Frontiers"
+  uid                 = "cosmic-frontiers"
   instance_type       = "t3a.xlarge"
 
   # Schedule Settings
@@ -39,10 +39,16 @@ module "minecraft_server" {
   }
 
   modpack             = "cosmic-frontiers"
-  modpack_zip         = "https://github.com/Frontiers-PackForge/CosmicFrontiers/releases/download/0.7.0-BE1/Cosmic.Frontiers.0.7.0.-.BE1.zip"
+
+  ### Automatic Server Pack ###
+  # modpack_zip         = "https://mediafilez.forgecdn.net/files/6894/334/Cosmic.Frontier.Server.0.7.3.zip"
+
+  ### Custom Server Pack ###
+  modpack_zip         = "https://github.com/Frontiers-PackForge/CosmicFrontiers/releases/download/0.8.0-nightly.008/Cosmic.Frontier.0.8.0-nightly.008.zip"
   additional_envs     = [
-    {key = "RCON_CMDS_STARTUP", val = "gamerule naturalRegeneration true"},
-    {key = "CF_EXCLUDE_MODS", val = "875744,854213,250398,231275,511770,908741,844662,915902,363363,367706,1113794,686911,525447,238747,581495,631278,1163800,334853,535489,306549"}]
+    {key = "RCON_CMDS_STARTUP", val = "gamerule naturalRegeneration true,gamerule dodaylightcycle true"},
+    {key = "CF_EXCLUDE_MODS", val = "875744,854213,250398,231275,511770,908741,844662,568563,915902,363363,367706,1113794,686911,525447,238747,581495,631278,1163800,334853,535489,306549,1223456"}
+  ]
 }
 
 module "dns_record" {

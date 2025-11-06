@@ -23,7 +23,8 @@ resource "aws_iam_role_policy" "asg_permissions" {
       Effect = "Allow",
       Action = [
         "ec2:DescribeInstances",
-        "autoscaling:DescribeAutoScalingGroups"
+        "autoscaling:DescribeAutoScalingGroups",
+        "autoscaling:SetDesiredCapacity"
       ],
       Resource = "*"
     }]
