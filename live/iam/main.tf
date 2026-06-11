@@ -51,7 +51,6 @@ module "access" {
 
   user_names = [
     "Tom",
-    "Sam",
     "Winston",
     "Box",
     "Lachlan",

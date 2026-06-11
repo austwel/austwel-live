@@ -1,14 +1,22 @@
 module "ftb_oceanblock_2" {
+  count = 0
   source = "./minecraft/ftb-oceanblock-2"
 
   start_server  = false
 }
 
 module "cosmic_frontiers" {
+  count = 0
   source = "./minecraft/cosmic-frontiers"
 
-  start_server  = true
-  main_server   = true
+  start_server  = false
+}
+
+module "tfg" {
+  source = "./minecraft/tfg"
+
+  start_server = true
+  main_server = true
 }
 
 module "access" {
@@ -27,26 +35,26 @@ module "alerting" {
   count = 0
   source = "../modules/webhook"
 
-  asg_names = [module.ftb_oceanblock_2.asg_name, module.cosmic_frontiers.asg_name]
+  asg_names = [module.tfg.asg_name]
   webhook_url = file("~/.discord/greg-webhook")
 }
 
 module "api" {
   source = "../modules/api"
 
-  asg_names = [module.ftb_oceanblock_2.asg_name, module.cosmic_frontiers.asg_name]
+  asg_names = [module.tfg.asg_name]
 }
 
 module "bot" {
   source = "../modules/bot"
 
-  asg_name = module.cosmic_frontiers.asg_name
-  asg_human_name = "Cosmic Frontiers"
+  asg_name = module.tfg.asg_name
+  asg_human_name = "TerraFirmaGreg"
   bot_token = chomp(file("~/.discord/bot_token"))
   channel_id = "955388796382367744"
   message_id = "1377221230465388556"
   discord_public_key = chomp(file("~/.discord/public_key"))
-  host_name = module.cosmic_frontiers.dns_name
+  host_name = module.tfg.dns_name
 }
 
 output "webhook_url" {
