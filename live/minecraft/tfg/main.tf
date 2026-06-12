@@ -39,9 +39,9 @@ module "minecraft_server" {
   }
 
   modpack             = "terrafirmagreg-modern"
-
-  ### Automatic Server Pack ###
-  modpack_zip         = "https://github.com/TerraFirmaGreg-Team/Modpack-Modern/releases/download/0.12.10/TerraFirmaGreg-Modern-0.12.10-serverpack.zip"
+  modpack_version     = "0.12.10"
+  forge_version       = "47.4.13"
+  minecraft_version   = "1.20.1"
 
   ### Custom Server Pack ###
   # modpack_zip         = "https://github.com/Frontiers-PackForge/CosmicFrontiers/releases/download/0.8.0-nightly.008/Cosmic.Frontier.0.8.0-nightly.008.zip"

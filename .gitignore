@@ -38,3 +38,4 @@ terraform.rc
 
 # Lockfiles
 .terraform.lock.hcl
+.terraform.tfvars.local

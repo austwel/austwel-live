@@ -183,6 +183,15 @@ chmod +x /usr/bin/docker-compose
 
 # ----------- Configure Docker Compose File -------------
 echo "Creating docker-compose.yml..."
+
+# Ensure CloudWatch Logs group exists; name based on instance/application
+LOG_GROUP_NAME="/minecraft/${name}"
+
+# Create log group if it doesn't exist (ignore errors if already created)
+aws logs describe-log-groups --log-group-name-prefix "$LOG_GROUP_NAME" --region "$REGION" >/dev/null 2>&1 || \
+  aws logs create-log-group --log-group-name "$LOG_GROUP_NAME" --region "$REGION" >/dev/null 2>&1 || true
+
+# Docker awslogs options will use the instance's IAM role; ensure the role has logs:CreateLogStream, logs:PutLogEvents
 printf '%s\n' "services:
   mc:
     image: itzg/minecraft-server:$JAVA_VERSION
@@ -203,15 +212,33 @@ printf '%s\n' "services:
       FORCE_GAMEMODE: \"TRUE\"
       STOP_SERVER_ANNOUNCE_DELAY: 30
       DIFFICULTY: \"HARD\"
+%{ if forge_version != "" && forge_version != null ~}
+      TYPE: \"forge\"
+      VERSION: \"${minecraft_version}\"
+      FORGE_VERSION: \"${forge_version}\"
+%{ if modpack_version != "" && modpack_version != null ~}
+      GENERIC_PACKS: \"TerraFirmaGreg-Modern-${modpack_version}-serverpack\"
+      GENERIC_PACKS_SUFFIX: \".zip\"
+      GENERIC_PACKS_PREFIX: \"https://github.com/TerraFirmaGreg-Team/Modpack-Modern/releases/download/${modpack_version}/\"
+%{ endif ~}
+%{ else ~}
       TYPE: \"AUTO_CURSEFORGE\"
       CF_API_KEY: \"$CF_API_KEY\"
       CF_SLUG: \"$MODPACK\"
 %{ if modpack_zip != "" && modpack_zip != null ~}
       CF_MODPACK_ZIP: \"/data/modpack/$${MODPACK_FILENAME}\"
 %{ endif ~}
+%{ endif ~}
 %{ for env in additional_envs ~}
       ${env.key}: \"${env.val}\"
 %{ endfor ~}
+    logging:
+      driver: awslogs
+      options:
+        awslogs-group: \"$LOG_GROUP_NAME\"
+        awslogs-region: \"$REGION\"
+        awslogs-create-group: \"true\"
+        awslogs-stream: \"{container_name}\"
     volumes:
       - \"/data:$MOUNTPOINT\"" > /opt/docker-compose.yml
 

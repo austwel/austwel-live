@@ -114,6 +114,24 @@ variable "modpack_zip" {
   default = ""
 }
 
+variable "modpack_version" {
+  type = string
+  description = "Modpack version"
+  default = ""
+}
+
+variable "forge_version" {
+  type = string
+  description = "Forge version"
+  default = ""
+}
+
+variable "minecraft_version" {
+  type = string
+  description = "Minecraft version"
+  default = ""
+}
+
 variable "additional_envs" {
   type = list(object({
     key = string

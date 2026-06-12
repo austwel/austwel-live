@@ -77,17 +77,29 @@ resource "aws_iam_policy" "policy" {
   
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect = "Allow"
-      Action = [
-        "ec2:AttachVolume",
-        "ec2:DetachVolume",
-        "ec2:DescribeVolumes",
-        "ec2:DescribeInstances",
-        "ec2:AssociateAddress"
-      ]
-      Resource = "*"
-    }]
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ec2:AttachVolume",
+          "ec2:DetachVolume",
+          "ec2:DescribeVolumes",
+          "ec2:DescribeInstances",
+          "ec2:AssociateAddress"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogGroup",
+          "logs:CreateLogStream",
+          "logs:DescribeLogStreams",
+          "logs:PutLogEvents"
+        ]
+        Resource = "*"
+      }
+    ]
   })
 }
 
