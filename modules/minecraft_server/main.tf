@@ -32,6 +32,9 @@ module "asg" {
     name                = var.name
     server_memory       = var.server_memory == null ? ((data.aws_ec2_instance_type.instance_info.memory_size/1024)*6/8) : var.server_memory
     modpack_zip         = var.modpack_zip
+    modpack_version     = var.modpack_version
+    forge_version       = var.forge_version
+    minecraft_version   = var.minecraft_version
     additional_envs     = var.additional_envs
     java_version        = var.java_version
     jvm_opts            = var.jvm_opts.jvm_opts
